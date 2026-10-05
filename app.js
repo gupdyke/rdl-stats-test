@@ -66,11 +66,25 @@ function publicURL(url) {
   throw new Error("Not available on the public site.");
 }
 async function getJSON(url) {
-  const r = await fetch(PUBLIC ? publicURL(url) : url);
+  const r = await fetch(PUBLIC ? `${publicURL(url)}?v=${window.STATS_VERSION}` : url);   // this deploy's data, not a cached copy
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || r.statusText);
   return j;
 }
+// A phone's home-screen app picks up where it left off instead of reloading, and may
+// reuse its cached page for 10 minutes. So on opening or coming back, ask for this
+// deploy's version.json; if a newer deploy is out, load it (the ?v= gets past the cache;
+// not reloading when the URL already has it stops a loop while the new deploy spreads).
+async function reloadIfNewDeploy() {
+  if (!PUBLIC || document.visibilityState !== "visible") return;
+  try {
+    const { v } = await (await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" })).json();
+    if (v && v !== window.STATS_VERSION && new URLSearchParams(location.search).get("v") !== v)
+      location.replace(`${location.pathname}?v=${v}`);
+  } catch { /* offline: keep what's showing */ }
+}
+document.addEventListener("visibilitychange", reloadIfNewDeploy);
+window.addEventListener("pageshow", reloadIfNewDeploy);
 function message(text, cls = "empty") { out.replaceChildren(el("p", { className: cls }, text)); }
 
 // ---- table ---------------------------------------------------------------
