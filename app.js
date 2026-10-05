@@ -142,11 +142,11 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
     const inCmp = addable && r.key != null && (r.kind === "team" ? picked.teams : picked.players).includes(r.key);
     const tr = el("tr", { className: [cls, inCmp && "picked"].filter(Boolean).join(" ") });   // in the comparison: highlighted
     const td = el("td", { className: "name bx bl br" });
-    // A team's name sits in a box of its own: on a phone, where it wraps, its second line lines up on the right (style.css).
-    const box = r.kind === "team" ? td.appendChild(el("div", { className: "teamname" })) : td;
+    // The name sits in a box of its own: on a phone, where it wraps, its second line lines up on the right (style.css).
+    const box = td.appendChild(el("div", { className: "namebox" }));
     if (removeFrom) box.append(removeButton(removeFrom, r.key, r.label));   // comparison tables
     else if (addable && r.key != null) box.append(addButton(r.kind === "team" ? picked.teams : picked.players, r.key, r.label));
-    box.append(r.kind === "team" ? el("span", {}, label) : label);
+    box.append(el("span", {}, label));
     tr.append(td);
     for (const g of groups) for (const c of g.cols) tr.append(el("td", { className: edge(g, c) }, c.f(r)));
     return tr;
@@ -691,6 +691,51 @@ const PAGES = { standings: () => renderStandings(), predictions: () => show(pred
   trophy: () => show(trophyPage()), leaders: () => show(leadersView()), hot: () => show(hotView()),
   schedule: async () => { const parts = await scheduleView(); if ($("page").value === "schedule") show(parts); } };
 const show = (parts) => out.replaceChildren(...parts);
+// On a phone a long team or player name wraps: its first line stays on the left and every
+// line after it goes on the right, and the name's box is as wide as its widest line, so the
+// lines line up with each other (not with the cell's edge). CSS can't do either (it only
+// moves the last line, and a wrapped box fills its cell), so this finds where each line
+// breaks (each word's top), measures the lines and splits the name into them: .first and
+// .rest (style.css). In three passes (write, read, write) so the page is laid out once, not
+// once per name.
+const PHONE = matchMedia("(max-width: 640px)");
+function alignNames() {
+  const spans = [...$("out").querySelectorAll(".namebox > span")];
+  for (const s of spans) {
+    const text = s.dataset.name ?? (s.dataset.name = s.textContent);
+    const words = text.split(" ");
+    s.style.width = "";
+    if (PHONE.matches && words.length > 1)   // one span per word, the spaces between them
+      s.replaceChildren(...words.flatMap((w, i) => (i ? [" ", el("span", {}, w)] : [el("span", {}, w)])));
+    else s.textContent = text;
+  }
+  const layouts = spans.map((s) => {   // [{words, width}, ...] per line
+    const lines = [];
+    for (const w of s.children) {
+      const line = lines[lines.length - 1];
+      if (line && Math.abs(w.offsetTop - line.top) <= 2) {
+        line.words.push(w.textContent);
+        line.width = w.offsetLeft + w.offsetWidth - line.left;
+      } else lines.push({ top: w.offsetTop, left: w.offsetLeft, width: w.offsetWidth, words: [w.textContent] });
+    }
+    return lines;
+  });
+  spans.forEach((s, i) => {
+    const lines = layouts[i];
+    if (lines.length < 2) { s.textContent = s.dataset.name; return; }
+    s.replaceChildren(...lines.map((l, j) => el("span", { className: j ? "rest" : "first" }, l.words.join(" "))));
+    s.style.width = `${Math.ceil(Math.max(...lines.map((l) => l.width)))}px`;
+  });
+}
+// Again whenever the tables change (any view, sort, collapse) or the phone turns.
+let aligning = 0;
+const alignSoon = () => { cancelAnimationFrame(aligning); aligning = requestAnimationFrame(() => {
+  namesSeen.disconnect(); alignNames(); namesSeen.observe($("out"), { childList: true, subtree: true }); }); };
+const namesSeen = new MutationObserver(alignSoon);
+namesSeen.observe($("out"), { childList: true, subtree: true });
+PHONE.addEventListener("change", alignSoon);
+addEventListener("resize", alignSoon);
+
 function render() {
   const page = $("page").value;
   document.querySelectorAll("[data-pages]").forEach((e) => (e.hidden = !e.dataset.pages.split(" ").includes(page)));
