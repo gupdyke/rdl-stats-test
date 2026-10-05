@@ -319,27 +319,12 @@ function fillTrophies() {
   const cats = (news?.trophies || []).map((b) => [b.category, b.category]);
   fill($("trophy"), [["*", "All"], ...cats], true);   // All = every category
 }
-// One boxed table, styled like the stats tables: a title row over the columns.
 // rows: [[first column, lines]]; lines[0] is the result, the rest the player(s) and team.
 function trophyTable(title, firstHeader, rows) {
-  const top = el("tr"), sub = el("tr");
-  top.append(el("th", { className: "grp box", colSpan: 3 }, title));
-  for (const h of [firstHeader, "Result", "Player and team"]) sub.append(el("th", { className: "name bl br" }, h));
-  const tbody = el("tbody");
-  for (const [first, lines] of rows) {
+  return boxTable(title, [firstHeader, "Result", "Player and team"], rows.map(([first, lines]) => {
     const [result = "", ...who] = trophyLines(lines);
-    const tr = el("tr");
-    tr.append(el("td", { className: "name bx bl br" }, first),
-      el("td", { className: "name bx bl br" }, /^\(none reported\)$/i.test(result) ? "None reported" : result),
-      el("td", { className: "name lines bx bl br" }, who.join("\n")));
-    tbody.append(tr);
-  }
-  const table = el("table", { className: "stats trophy" });
-  table.append(el("thead"), tbody);
-  table.tHead.append(top, sub);
-  const wrap = el("div", { className: "scroll" });
-  wrap.append(table);
-  return wrap;
+    return [first, /^\(none reported\)$/i.test(result) ? "None reported" : result, who.join("\n")];
+  }), { lines: [2] });
 }
 // One category: every division (or the one picked). All: with a division, every
 // category in one table; with All divisions, a table per category.
@@ -362,18 +347,23 @@ function trophyPage() {
 }
 
 // ---- Leader boards (Pg6-9), Hot Darts (Pg3), Predictions (Pg5) -----------------
-// A boxed table like the trophy darts: a title over the columns, then the rows (text cells).
-function boxTable(title, headers, rows, numeric = []) {
+// A table drawn like the Standings tables: a title across the top, then two boxes with
+// lines only around each box: the first `split` columns (the names), and the rest.
+// numeric: right-aligned columns; lines: columns that keep their line breaks.
+function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [] } = {}) {
+  const n = headers.length;
+  const cls = (i) => [numeric.includes(i) ? "" : "name", lines.includes(i) && "lines", "bx",
+    (i === 0 || i === split) && "bl", (i === split - 1 || i === n - 1) && "br"].filter(Boolean).join(" ");
   const top = el("tr"), sub = el("tr");
-  top.append(el("th", { className: "grp box", colSpan: headers.length }, title));
-  headers.forEach((h, i) => sub.append(el("th", { className: `${numeric.includes(i) ? "" : "name"} bl br` }, h)));
+  top.append(el("th", { className: "grp box", colSpan: n }, title));
+  headers.forEach((h, i) => sub.append(el("th", { className: cls(i) }, h)));
   const tbody = el("tbody");
   for (const r of rows) {
     const tr = el("tr");
-    r.forEach((v, i) => tr.append(el("td", { className: `${numeric.includes(i) ? "" : "name"} bx bl br` }, v)));
+    r.forEach((v, i) => tr.append(el("td", { className: cls(i) }, v)));
     tbody.append(tr);
   }
-  const table = el("table", { className: "stats trophy" });
+  const table = el("table", { className: "stats plain" });
   table.append(el("thead"), tbody);
   table.tHead.append(top, sub);
   const wrap = el("div", { className: "scroll" });
@@ -400,7 +390,7 @@ function leadersView() {
       prev = r.rank;
       return [String(rank), r.name, r.team.replace(/^([A-H]\d+)\/\s*/, "$1 - "), ...r.stats.map((v, i) => String(fmt(v, b.columns[i])))];
     });
-    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, [0, 3, 4, 5]);
+    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, { split: 3, numeric: [0, 3, 4, 5] });
   };
   const divs = divisionsShown([...new Set(boards.flatMap((b) => Object.keys(b.divisions)))]);
   return [el("h2", {}, `Leader boards — ${where()} ${boards[0].note}`.trim()),
@@ -418,12 +408,12 @@ function hotView() {
   return [el("h2", {}, `Hot Darts — ${where()}`),
     ...divisionsShown([...new Set(hot.map((h) => h.division))]).map((d) =>
       boxTable(`${d} Division`, ["Player", "Team", "Hot dart"],
-        hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart])))];
+        hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart]), { split: 2 }))];
 }
 
-// Predictions: the newsletter's paragraphs, split by division. The opening remarks come
-// first; then each division's match write-ups ("Match #2:  (F Div.) ...") and its picks for
-// the rest of the week ("F Division: Two Time 14, ..."), labels in bold.
+// Predictions, split by division: each division's match write-ups ("Match #2:  (F Div.) ...")
+// and its picks for the rest of the week ("F Division: Two Time 14, ..."), labels in bold.
+// The opening remarks aren't about one division, so they're left out.
 function predictionsView() {
   const ps = news.predictions || [];
   if (!ps.length) return [el("p", { className: "empty" }, "No predictions in this newsletter.")];
@@ -436,9 +426,8 @@ function predictionsView() {
     return p;
   };
   const divOf = (t) => t.match(/\(([A-H]) Div[^)]*\)/)?.[1] || t.match(/^([A-H]) Division:/)?.[1];
-  const intro = ps.filter((t) => !divOf(t) && !/^And the remaining/.test(t));
   const divs = divisionsShown([...new Set(ps.map(divOf).filter(Boolean))]);
-  return [el("h2", {}, `Predictions for the week — ${where()}`), ...intro.map((t) => para(t)),
+  return [el("h2", {}, `Predictions for the week — ${where()}`),
     ...divs.flatMap((d) => [el("h3", {}, `${d} Division`),
       ...ps.filter((t) => divOf(t) === d).map((t) => (/^[A-H] Division:/.test(t) ? para(t, "Other matches:") : para(t)))])];
 }

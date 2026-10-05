@@ -84,14 +84,15 @@ th .arrow.idle { opacity: .45; font-weight: 400; }   /* sortable, not sorted by 
 .help-box ul { margin: 0; padding-left: 20px; }
 .help-box li + li { margin-top: 4px; }
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */
-table.trophy td { vertical-align: top; }
-table.trophy + table.trophy, .scroll + .scroll { margin-top: 16px; }   /* one trophy table per category */
+table.plain td { vertical-align: top; }
+table.plain th { cursor: default; }   /* newsletter tables don't sort */
+.scroll + .scroll { margin-top: 16px; }   /* tables one under another */
 td.lines { white-space: pre-line; }   /* trophy darts: player and team on their own lines */
 
 /* The name column stays put while the numbers scroll, at any width (phones in landscape too). */
-table.stats:not(.trophy) tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--panel);
+table.stats:not(.plain) tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--panel);
   border-left: 0; border-right: 0; box-shadow: inset 2px 0 var(--muted), inset -2px 0 var(--muted); }   /* collapsed borders don't follow a sticky cell */
-table.stats:not(.trophy) tbody tr:nth-child(even) > :first-child { background: var(--stripe); }
+table.stats:not(.plain) tbody tr:nth-child(even) > :first-child { background: var(--stripe); }
 
 /* Phones (portrait): controls two to a row and wrapping names. */
 @media (max-width: 640px) {
@@ -103,11 +104,11 @@ table.stats:not(.trophy) tbody tr:nth-child(even) > :first-child { background: v
   .search { flex: 1 1 0; min-width: 0; }
   .search input { width: 100%; }
   th, td { padding: 4px 6px; }
-  table.stats:not(.trophy) td.name { white-space: normal; width: 40vw; min-width: 8em; }
+  table.stats:not(.plain) td.name { white-space: normal; width: 40vw; min-width: 8em; }
 }
 
 /* In the comparison: the row is tinted (the sticky name cell too) and its name is bold. */
-table.stats tbody tr.picked > td, table.stats:not(.trophy) tbody tr.picked > :first-child { background: var(--pick); }
+table.stats tbody tr.picked > td, table.stats:not(.plain) tbody tr.picked > :first-child { background: var(--pick); }
 tr.picked td.name { font-weight: 600; }
 p.prediction { max-width: 70ch; margin: 0 0 12px; }   /* the newsletter's picks, one paragraph per match */
 .boards { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }   /* a division's leader boards, side by side */
