@@ -147,7 +147,7 @@ function removeButton(list, key, label) {
 // Division "" = All divisions (the whole league).
 const teamsOf = () => (!news ? [] : $("division").value ? news.divisions[$("division").value] || [] : allTeams());
 const playerKey = (t, p) => `${t.code}:${p.number}`;   // numbers repeat across divisions
-const playerLabel = (t, p) => `${p.name} (#${p.number}, ${t.code})`;
+const playerLabel = (t, p) => `${p.name} (${t.code[0]}${p.number})`;   // "Updyke, Gerald (F74)": the player ID
 // Player rows carry the team so the Player column can sort by ID: division, then number (A10 ... F74).
 const playerRow = (t, p) => ({ ...p, label: playerLabel(t, p), div: t.code[0], key: p.name, kind: "player" });
 const teamRow = (t) => ({ ...t.totals, label: `${t.code} - ${t.name}`, key: t.code, kind: "team" });
