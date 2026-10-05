@@ -393,10 +393,12 @@ const where = () => ($("division").value ? `${$("division").value} Division` : "
 // Leader boards: the newsletter's three lists, shown together for each division: rank
 // (blank = tied with the one above), player, team, and its three numbers. Win % and
 // averages to 3 places, like everywhere else. (The end-of-season Doubles list is left out.)
-const LEADER_BOARDS = [["Singles", "Singles Win Percentage"], ["All-Star", "All-Star Point Average (ASP)"],
-  ["Singles + Doubles", "Singles + Doubles Win Percentage"]];
+// Board (next to Division) picks one list, or All.
+const LEADER_BOARDS = [["Singles", "Singles Win Percentage"], ["Singles + Doubles", "Singles + Doubles Win Percentage"],
+  ["All-Star", "All-Star Point Average (ASP)"]];
 function leadersView() {
-  const boards = LEADER_BOARDS.map(([key, title]) => ({ ...(news.leaders || []).find((x) => x.board === key), title }))
+  const boards = LEADER_BOARDS.filter(([key]) => $("board").value === "*" || key === $("board").value)
+    .map(([key, title]) => ({ ...(news.leaders || []).find((x) => x.board === key), title }))
     .filter((b) => b.divisions);
   if (!boards.length) return [el("p", { className: "empty" }, "No leader boards in this newsletter.")];
   const fmt = (v, col) => (typeof v === "number" && /%|Ave/.test(col) ? v.toFixed(3) : v ?? "");
@@ -605,7 +607,7 @@ $("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 $("division").onchange = () => { collapsed.clear(); closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
 $("team").onchange = () => { collapsed.clear(); saveView(); closeSearch(); fillPlayers(); };
 $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
-$("trophy").onchange = render;
+$("trophy").onchange = $("board").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
 // ? next to Clear opens and closes the how-comparing-works box (a tap, so it works on phones).
