@@ -153,16 +153,19 @@ const playerRow = (t, p) => ({ ...p, label: playerLabel(t, p), div: t.code[0], k
 const teamRow = (t) => ({ ...t.totals, label: `${t.code} - ${t.name}`, key: t.code, kind: "team" });
 const byPlayerId = (a, b) => a.div.localeCompare(b.div) || a.number - b.number;
 
-// ---- saved view: Season, Week and Division, so the page opens where it was left ----
+// ---- saved view: Season, Week, Division and Team, so the page opens where it was left ----
 // Saved in this browser when those dropdowns change (a search jumping to another
-// division doesn't count). If a newer week has come out since, the page opens on it.
+// division or team doesn't count). The team is saved by name: codes change between seasons. If a newer week has come out since, the page opens on it.
 const SAVED = "rdl-stats-view";
 const saved = (() => { try { return JSON.parse(localStorage.getItem(SAVED)) || {}; } catch { return {}; } })();
 function saveView() {
   Object.assign(saved, { week: $("newsletter").value, division: $("division").value,
+    team: allTeams().find((t) => t.code === $("team").value)?.name || "",
     latest: catalog.rdl[catalog.rdl.length - 1]?.file });
   try { localStorage.setItem(SAVED, JSON.stringify(saved)); } catch {}
 }
+// The saved team's code if it's in the division showing, else "" (All teams).
+const homeTeam = () => (saved.team && teamsOf().find((t) => t.name === saved.team)?.code) || "";
 // The saved division if this week has it, else the first one.
 function homeDivision() {
   const ok = "division" in saved && [...$("division").options].some((o) => o.value === saved.division);
@@ -194,6 +197,7 @@ async function loadNewsletter() {
   fillTrophies();
   if (first) $("division").value = homeDivision();
   fillTeams();
+  if (first && homeTeam()) { $("team").value = homeTeam(); fillPlayers(); }
   if (prevName) followPlayer(prevName);
 }
 
@@ -446,7 +450,7 @@ function pickTeam(t) {
   $("player").value = "none";   // just the team, even when one of its players was showing
   fillPlayers();
 }
-// Back to the default view: the saved division's team totals, the search box empty.
+// Back to the default view: the saved division and team, the search box empty.
 function resetView() {
   closeSearch();
   $("trophy").value = "";
@@ -454,8 +458,9 @@ function resetView() {
   resetViewSorts();
   $("team").value = "";
   fillTeams();
+  $("team").value = homeTeam();
   $("player").value = "none";
-  render();
+  fillPlayers();
 }
 function showPlayer(t, p) {
   $("trophy").value = "";
@@ -473,9 +478,9 @@ const render = () => renderRDL();
 $("newsletter").onchange = () => { saveView(); loadNewsletter(); };
 $("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 // Picking from the dropdowns replaces a searched-for player, so the box empties.
-$("division").onchange = () => { saveView(); closeSearch(); resetViewSorts(); fillTeams(); };
+$("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
 // Picking a team or player leaves Trophy darts; picking a category shows it.
-$("team").onchange = () => { closeSearch(); $("trophy").value = ""; fillPlayers(); };
+$("team").onchange = () => { saveView(); closeSearch(); $("trophy").value = ""; fillPlayers(); };
 $("player").onchange = () => { closeSearch(); $("trophy").value = ""; render(); };
 $("trophy").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
