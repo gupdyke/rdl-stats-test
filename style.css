@@ -109,6 +109,11 @@ table.stats:not(.plain) tbody tr:nth-child(even) > :first-child { background: va
   .search input { width: 100%; }
   th, td { padding: 4px 6px; }
   table.stats:not(.plain) td.name { white-space: normal; width: 40vw; min-width: 8em; }
+  /* A team name that wraps: first line on the left, the rest on the right. The name's box
+     is only as wide as the name, so one that fits on a line stays where it was. */
+  .teamname { display: flex; align-items: baseline; }
+  .teamname > button { flex: none; }
+  .teamname > span { min-width: 0; text-align-last: right; }
 }
 
 /* In the comparison: the row is tinted (the sticky name cell too) and its name is bold. */

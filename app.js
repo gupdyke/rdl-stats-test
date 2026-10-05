@@ -142,9 +142,11 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
     const inCmp = addable && r.key != null && (r.kind === "team" ? picked.teams : picked.players).includes(r.key);
     const tr = el("tr", { className: [cls, inCmp && "picked"].filter(Boolean).join(" ") });   // in the comparison: highlighted
     const td = el("td", { className: "name bx bl br" });
-    if (removeFrom) td.append(removeButton(removeFrom, r.key, r.label));   // comparison tables
-    else if (addable && r.key != null) td.append(addButton(r.kind === "team" ? picked.teams : picked.players, r.key, r.label));
-    td.append(label);
+    // A team's name sits in a box of its own: on a phone, where it wraps, its second line lines up on the right (style.css).
+    const box = r.kind === "team" ? td.appendChild(el("div", { className: "teamname" })) : td;
+    if (removeFrom) box.append(removeButton(removeFrom, r.key, r.label));   // comparison tables
+    else if (addable && r.key != null) box.append(addButton(r.kind === "team" ? picked.teams : picked.players, r.key, r.label));
+    box.append(r.kind === "team" ? el("span", {}, label) : label);
     tr.append(td);
     for (const g of groups) for (const c of g.cols) tr.append(el("td", { className: edge(g, c) }, c.f(r)));
     return tr;
