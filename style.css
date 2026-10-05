@@ -12,7 +12,7 @@
 [hidden] { display: none !important; }
 body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
        font: 15px/1.4 system-ui, sans-serif; }
-header { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+header { display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
 h1 { margin: 0; font-size: 22px; }
 h2 { font-size: 17px; margin: 24px 0 8px; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
@@ -72,6 +72,13 @@ button.cmp:hover { color: var(--accent); }
 .cmp-head button { font-size: 13px; font-weight: 400; }
 button:disabled { opacity: 0.5; cursor: default; }
 h1 .label { font-size: 13px; font-weight: 700; color: var(--panel); background: var(--accent); border-radius: 4px; padding: 2px 8px; vertical-align: middle; }   /* test site */
+button.help { width: 26px; height: 26px; padding: 0; border-radius: 50%; font-weight: 700; color: var(--muted); margin-left: auto; flex: none; }   /* top right */
+button.help[aria-expanded="true"] { color: var(--panel); background: var(--muted); }
+.help-box { width: 100%; padding: 8px 12px; font-size: 14px; background: var(--bg);
+            border: 1px solid var(--line); border-radius: 6px; }   /* how comparing works */
+.help-box p { margin: 0 0 4px; }
+.help-box ul { margin: 0; padding-left: 20px; }
+.help-box li + li { margin-top: 4px; }
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */
 table.trophy td { vertical-align: top; }
 table.trophy + table.trophy, .scroll + .scroll { margin-top: 16px; }   /* one trophy table per category */

@@ -484,6 +484,12 @@ $("team").onchange = () => { saveView(); closeSearch(); $("trophy").value = ""; 
 $("player").onchange = () => { closeSearch(); $("trophy").value = ""; render(); };
 $("trophy").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
+// ? next to Clear opens and closes the how-comparing-works box (a tap, so it works on phones).
+$("cmp-help-toggle").onclick = () => {
+  const box = $("cmp-help");
+  box.hidden = !box.hidden;
+  $("cmp-help-toggle").setAttribute("aria-expanded", String(!box.hidden));
+};
 $("search").oninput = $("search").onfocus = renderSearch;
 $("search").onkeydown = (e) => {
   if (e.key === "Escape") closeSearch();

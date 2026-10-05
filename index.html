@@ -3,12 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Raleigh Dart League Statistics (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261005131132">
+  <title>Raleigh Dart League Stats (test)</title>
+  <link rel="stylesheet" href="style.css?v=20261005134610">
 </head>
 <body>
   <header>
-    <h1>Raleigh Dart League Statistics <span class="label">test</span></h1>
+    <h1>Raleigh Dart League Stats <span class="label">test</span></h1>
+    <button id="cmp-help-toggle" class="help" type="button" title="How comparing works"
+            aria-label="How comparing works" aria-expanded="false" aria-controls="cmp-help">?</button>
+    <div id="cmp-help" class="help-box" hidden>
+      <p><b>Comparing teams and players</b></p>
+      <ul>
+        <li><b>Add:</b> tap <b>+</b> next to a Search result, or <b>+</b> on a row in the table below.
+          A greyed <b>+</b> means it's already in the comparison.</li>
+        <li><b>Remove one:</b> tap <b>×</b> on its row in a Comparing table.</li>
+        <li><b>Remove all teams</b> or <b>all players:</b> the <b>Clear</b> next to "Comparing N teams" or "Comparing N players".</li>
+        <li><b>Remove everything:</b> the <b>Clear</b> next to Search. It also goes back to your saved division and team.</li>
+        <li>The comparison stays when you change Season or Week. Anyone not in that week shows as a dashed
+          "(not in this week)" tag; its <b>×</b> removes it.</li>
+      </ul>
+    </div>
   </header>
 
   <section id="rdl-controls" class="controls">
@@ -41,8 +55,8 @@
   </section>
 
   <main id="out"></main>
-  <footer class="stamp">Updated Oct 5, 2026 9:11 AM</footer>
+  <footer class="stamp">Updated Oct 5, 2026 9:45 AM</footer>
   <script>window.STATS_PUBLIC = true;</script>
-  <script src="app.js?v=20261005131132"></script>
+  <script src="app.js?v=20261005134610"></script>
 </body>
 </html>
