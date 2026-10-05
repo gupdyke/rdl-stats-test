@@ -39,12 +39,14 @@ const GROUPS = {
     { h: "W-L", f: wl("tb_w", "tb_l"), k: "tb_w" } ] },
 };
 // Team rows end with the team's standings (match record and points, from Pg2),
-// always shown, as the last group. They have no matches-played count.
+// always shown, as the first group (right after the name). They have no matches-played count.
 // Columns marked team: true (win % per game type) show only for team rows.
 // Sorting by record breaks ties on standings points, as the league does.
 const STANDINGS = { title: "Standings", box: true, cols: [
   { h: "Record", f: wl("m_w", "m_l"), k: "m_w", then: "m_pts" },
   { h: "Points", f: num("m_pts"), k: "m_pts" } ] };
+// Team totals start in standings order: best record first, ties on points.
+const BY_STANDINGS = { key: "m_w", desc: true };
 
 const el = (tag, attrs = {}, text) => {
   const e = Object.assign(document.createElement(tag), attrs);
@@ -90,12 +92,12 @@ function message(text, cls = "empty") { out.replaceChildren(el("p", { className:
 // ---- table ---------------------------------------------------------------
 // Boxed groups: left/right borders on a group's first and last columns.
 const edge = (g, c) => (!g.box ? "" : ["bx", c === g.cols[0] && "bl", c === g.cols[g.cols.length - 1] && "br"].filter(Boolean).join(" "));
-function statTable(rows, { id, nameHeader, name, total, removeFrom, addable }) {
-  const sort = sorts[id] || { key: null, desc: true };
+function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, defaultSort }) {
+  const sort = sorts[id] || defaultSort || { key: null, desc: true };
   const teamRows = nameHeader === "Team";
-  const groups = [...[...document.querySelectorAll(".groups input:checked")].map((c) => GROUPS[c.value])
-      .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) })),
-    ...(teamRows ? [STANDINGS] : [])];
+  const groups = [...(teamRows ? [STANDINGS] : []),
+    ...[...document.querySelectorAll(".groups input:checked")].map((c) => GROUPS[c.value])
+      .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) }))];
   if (sort.key === NAME) {
     const cmp = nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b));
     rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
@@ -105,16 +107,20 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable }) {
     rows = [...rows].sort((a, b) => (diff(a, b, sort.key) || (then ? diff(a, b, then) : 0)) * (sort.desc ? -1 : 1));
   }
   const top = el("tr"), sub = el("tr");
+  // Every sortable heading shows an arrow: ▼/▲ on the column the table is sorted by, a faint ⇅ on the rest.
+  const heading = (text, key) => {
+    const th = el("th", {}, text);
+    th.append(el("span", { className: sort.key === key ? "arrow" : "arrow idle" }, sort.key !== key ? " ⇅" : sort.desc ? " ▼" : " ▲"));
+    return th;
+  };
   top.append(el("th", { className: "grp box" }, ""));   // the name column is boxed too
-  const nameArrow = sort.key === NAME ? (sort.desc ? " ▼" : " ▲") : "";
-  const nameTh = el("th", { className: "name bl br", title: nameHeader === "Player" ? "Sort by player ID" : "Sort A-Z" }, nameHeader + nameArrow);
+  const nameTh = Object.assign(heading(nameHeader, NAME), { className: "name bl br", title: nameHeader === "Player" ? "Sort by player ID" : "Sort A-Z" });
   nameTh.onclick = () => { sorts[id] = { key: NAME, desc: sort.key === NAME ? !sort.desc : false }; render(); };
   sub.append(nameTh);
   for (const g of groups) {
     top.append(el("th", { className: g.box ? "grp box" : "grp", colSpan: g.cols.length }, g.title));
     for (const c of g.cols) {
-      const arrow = sort.key === c.k ? (sort.desc ? " ▼" : " ▲") : "";
-      const th = el("th", { title: "Sort", className: edge(g, c) }, c.h + arrow);
+      const th = Object.assign(heading(c.h, c.k), { title: "Sort", className: edge(g, c) });
       th.onclick = () => { sorts[id] = { key: c.k, desc: sort.key === c.k ? !sort.desc : true }; render(); };
       sub.append(th);
     }
@@ -274,7 +280,7 @@ function renderRDL() {
       statTable(withLabels([team]), { id: "main", nameHeader: "Player", name: (r) => r.label, total: teamRow(team), addable: true })];
   } else if (!$("division").value && noPlayers) {
     view = [el("h2", {}, `All divisions — Team totals`),
-      statTable(teams.map(teamRow), { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true })];
+      statTable(teams.map(teamRow), { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true, defaultSort: BY_STANDINGS })];
   } else if (!$("division").value) {
     const rows = withLabels(teams);
     view = [el("h2", {}, `All divisions — ${rows.length} players`),
@@ -282,7 +288,7 @@ function renderRDL() {
   } else {
     const players = withLabels(teams);
     view = [el("h2", {}, `${$("division").value} Division — Team totals`),
-      statTable(teams.map(teamRow), { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true })];
+      statTable(teams.map(teamRow), { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true, defaultSort: BY_STANDINGS })];
     if (!noPlayers) more = [el("h2", {}, `${$("division").value} Division — ${players.length} players`),
       statTable(players, { id: "more", nameHeader: "Player", name: (r) => r.label, addable: true })];
   }

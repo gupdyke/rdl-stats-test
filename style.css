@@ -77,6 +77,8 @@ button.help[aria-expanded="true"] { color: var(--panel); background: var(--muted
 .help-box { width: 100%; padding: 8px 12px; font-size: 14px; background: var(--bg);
             border: 1px solid var(--line); border-radius: 6px; }   /* how comparing works */
 .help-box p { margin: 0 0 4px; }
+th .arrow.idle { opacity: .45; font-weight: 400; }   /* sortable, not sorted by */
+.help-box p.next { margin-top: 10px; }   /* Sorting, after Comparing */
 .help-box ul { margin: 0; padding-left: 20px; }
 .help-box li + li { margin-top: 4px; }
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */

@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raleigh Dart League Stats (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261005143443">
+  <link rel="stylesheet" href="style.css?v=20261005144514">
 </head>
 <body>
   <header>
     <h1>Raleigh Dart League Stats <span class="label">test</span></h1>
-    <button id="cmp-help-toggle" class="help" type="button" title="How comparing works"
-            aria-label="How comparing works" aria-expanded="false" aria-controls="cmp-help">?</button>
+    <button id="cmp-help-toggle" class="help" type="button" title="How comparing and sorting work"
+            aria-label="How comparing and sorting work" aria-expanded="false" aria-controls="cmp-help">?</button>
     <div id="cmp-help" class="help-box" hidden>
       <p><b>Comparing teams and players</b></p>
       <ul>
@@ -21,6 +21,15 @@
         <li><b>Remove everything:</b> the <b>Clear</b> next to Search. It also goes back to your saved division and team.</li>
         <li>The comparison stays when you change Season or Week. Anyone not in that week shows as a dashed
           "(not in this week)" tag; its <b>×</b> removes it.</li>
+      </ul>
+      <p class="next"><b>Sorting</b></p>
+      <ul>
+        <li>Tap a column heading to sort by it, highest first. Tap it again to flip the order.
+          <b>▼</b> or <b>▲</b> marks the column the table is sorted by; the faint <b>⇅</b> marks the others you can sort by.</li>
+        <li><b>Team</b> sorts A-Z; <b>Player</b> sorts by player ID (division, then number).</li>
+        <li>Team totals start in standings order: best <b>Record</b> first, ties broken by <b>Points</b>.</li>
+        <li>Each table sorts on its own. Changing Division, or the <b>Clear</b> next to Search, puts the
+          table back in its starting order.</li>
       </ul>
     </div>
   </header>
@@ -55,8 +64,8 @@
   </section>
 
   <main id="out"></main>
-  <footer class="stamp">Updated Oct 5, 2026 10:34 AM</footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261005143443";</script>
-  <script src="app.js?v=20261005143443"></script>
+  <footer class="stamp">Updated Oct 5, 2026 10:44 AM</footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261005144514";</script>
+  <script src="app.js?v=20261005144514"></script>
 </body>
 </html>
