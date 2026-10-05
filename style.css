@@ -73,3 +73,20 @@ hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }  
 table.trophy td { vertical-align: top; }
 table.trophy + table.trophy, .scroll + .scroll { margin-top: 16px; }   /* one trophy table per category */
 td.lines { white-space: pre-line; }   /* trophy darts: player and team on their own lines */
+
+/* Phones: controls two to a row, wrapping names, and a name column that stays put while the numbers scroll. */
+@media (max-width: 640px) {
+  body { padding: 10px; }
+  .controls { margin: 10px 0; padding: 10px; gap: 10px; }
+  .row { gap: 8px 10px; flex-wrap: wrap; }
+  .row > label { flex: 1 1 calc(50% - 5px); min-width: 0; }
+  select { min-width: 0; width: 100%; }
+  .search { flex: 1 1 0; min-width: 0; }
+  .search input { width: 100%; }
+  .long { display: none; }   /* "Add to comparison" reads "Add" */
+  th, td { padding: 4px 6px; }
+  table.stats:not(.trophy) td.name { white-space: normal; width: 40vw; min-width: 8em; }
+  table.stats:not(.trophy) tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--panel);
+    border-left: 0; border-right: 0; box-shadow: inset 2px 0 var(--muted), inset -2px 0 var(--muted); }   /* collapsed borders don't follow a sticky cell */
+  table.stats:not(.trophy) tbody tr:nth-child(even) > :first-child { background: var(--stripe); }
+}
