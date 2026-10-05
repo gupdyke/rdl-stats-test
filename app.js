@@ -6,6 +6,14 @@ let news = null;          // parsed newsletter currently selected
 // Division view's tables; the comparison tables have their own ids.
 const sorts = {};
 const resetViewSorts = () => { delete sorts.main; delete sorts.more; };
+// Every table has Collapse in its top-left cell: it shrinks that table to its top row (and
+// Expand brings it back). Keyed by table; a new pick (dropdowns, Search, Reset) expands them all.
+const collapsed = new Set();
+function collapseButton(key) {
+  const b = el("button", { type: "button", className: "collapse" }, collapsed.has(key) ? "Expand" : "Collapse");
+  b.onclick = () => { if (!collapsed.delete(key)) collapsed.add(key); render(); };
+  return b;
+}
 const NAME = "__name";   // sort key for the Player/Team column (alphabetical)
 
 // ---- column groups -------------------------------------------------------
@@ -116,7 +124,9 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
     th.append(el("span", { className: sort.key === key ? "arrow" : "arrow idle" }, sort.key !== key ? " ⇅" : sort.desc ? " ▼" : " ▲"));
     return th;
   };
-  top.append(el("th", { className: "grp box" }, ""));   // the name column is boxed too
+  const corner = el("th", { className: "grp box corner" });   // the name column is boxed too
+  corner.append(collapseButton(id));
+  top.append(corner);
   const nameTh = Object.assign(heading(nameHeader, NAME), { className: "name bl br", title: nameHeader === "Player" ? "Sort by player ID" : "Sort A-Z" });
   nameTh.onclick = () => { sorts[id] = { key: NAME, desc: sort.key === NAME ? !sort.desc : false }; render(); };
   sub.append(nameTh);
@@ -143,8 +153,9 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
   rows.forEach((r) => tbody.append(line(r, name(r))));
   if (total) tbody.append(line(total, "Team total", "total"));
   const table = el("table", { className: "stats" });
-  table.append(el("thead"), tbody);
-  table.tHead.append(top, sub);
+  table.append(el("thead"));
+  if (collapsed.has(id)) table.tHead.append(top);   // just the group headings and Expand
+  else { table.tHead.append(top, sub); table.append(tbody); }
   const wrap = el("div", { className: "scroll" });
   wrap.append(table);
   return wrap;
@@ -320,11 +331,11 @@ function fillTrophies() {
   fill($("trophy"), [["*", "All"], ...cats], true);   // All = every category
 }
 // rows: [[first column, lines]]; lines[0] is the result, the rest the player(s) and team.
-function trophyTable(title, firstHeader, rows) {
+function trophyTable(title, firstHeader, rows, key) {
   return boxTable(title, [firstHeader, "Result", "Player and team"], rows.map(([first, lines]) => {
     const [result = "", ...who] = trophyLines(lines);
     return [first, /^\(none reported\)$/i.test(result) ? "None reported" : result, who.join("\n")];
-  }), { lines: [0, 2] });
+  }), { lines: [0, 2], key });
 }
 // One category: every division (or the one picked). All: with a division, every
 // category in one table; with All divisions, a table per category.
@@ -333,7 +344,7 @@ function trophyView(blocks) {
   const where = div ? `${div} Division` : "All divisions";
   if (blocks.length > 1 && div) {
     return [el("h2", {}, `Trophy darts — ${where}`),
-      trophyTable(`${div} Division`, "Category", blocks.map((b) => [b.category.replace("High Out - ", "High Out -\n"), b.divisions[div] || []]))];   // two lines: "High Out -" / "301/501/1001"
+      trophyTable(`${div} Division`, "Category", blocks.map((b) => [b.category.replace("High Out - ", "High Out -\n"), b.divisions[div] || []]), `trophy:${div}`)];   // two lines: "High Out -" / "301/501/1001"
   }
   return [el("h2", {}, `Trophy darts — ${blocks.length > 1 ? "all categories, " : ""}${where}`),
     ...blocks.map((b) => trophyTable(b.category, "Division",
@@ -347,17 +358,20 @@ function trophyPage() {
 }
 
 // ---- Leader boards (Pg6-9), Hot Darts (Pg3), Predictions (Pg5) -----------------
-// A table drawn like the Standings tables: a title across the top, then two boxes with
-// lines only around each box: the first `split` columns (the names), and the rest.
-// numeric: right-aligned columns; lines: columns that keep their line breaks; freeze: how
-// many columns on the left stay put while the rest scroll sideways (1 or 2).
-function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [], freeze = 1 } = {}) {
+// A table drawn like the Standings tables: the top row is Collapse (over the frozen columns)
+// and the title (over the rest); then two boxes, the first `split` columns (the names) and
+// the rest. numeric: right-aligned columns; lines: columns that keep their line breaks;
+// freeze: how many columns on the left stay put while the rest scroll sideways (1 or 2);
+// key: which table this is, for Collapse.
+function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [], freeze = 1, key = title } = {}) {
   const n = headers.length;
   const cls = (i) => [numeric.includes(i) ? "" : "name", lines.includes(i) && "lines", "bx",
     i < freeze && `frz frz${i}`, freeze === 2 && i === 0 && "rank",
     (i === 0 || i === split) && "bl", (i === split - 1 || i === n - 1) && "br"].filter(Boolean).join(" ");
   const top = el("tr"), sub = el("tr");
-  top.append(el("th", { className: "grp box", colSpan: n }, title));
+  const corner = el("th", { className: "grp box corner frz frz0", colSpan: freeze });
+  corner.append(collapseButton(key));
+  top.append(corner, el("th", { className: "grp box", colSpan: n - freeze }, title));
   headers.forEach((h, i) => sub.append(el("th", { className: cls(i) }, h)));
   const tbody = el("tbody");
   for (const r of rows) {
@@ -366,8 +380,9 @@ function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [], f
     tbody.append(tr);
   }
   const table = el("table", { className: "stats plain" });
-  table.append(el("thead"), tbody);
-  table.tHead.append(top, sub);
+  table.append(el("thead"));
+  if (collapsed.has(key)) table.tHead.append(top);
+  else { table.tHead.append(top, sub); table.append(tbody); }
   const wrap = el("div", { className: "scroll" });
   wrap.append(table);
   return wrap;
@@ -392,7 +407,7 @@ function leadersView() {
       prev = r.rank;
       return [String(rank), r.name, r.team.replace(/^([A-H]\d+)\/\s*/, "$1 - "), ...r.stats.map((v, i) => String(fmt(v, b.columns[i])))];
     });
-    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, { split: 3, numeric: [0, 3, 4, 5], freeze: 2 });
+    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, { split: 3, numeric: [0, 3, 4, 5], freeze: 2, key: `leaders:${d}:${b.title}` });
   };
   const divs = divisionsShown([...new Set(boards.flatMap((b) => Object.keys(b.divisions)))]);
   return [el("h2", {}, `Leader boards — ${where()} ${boards[0].note}`.trim()),
@@ -410,7 +425,7 @@ function hotView() {
   return [el("h2", {}, `Hot Darts — ${where()}`),
     ...divisionsShown([...new Set(hot.map((h) => h.division))]).map((d) =>
       boxTable(`${d} Division`, ["Player", "Team", "Hot dart"],
-        hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart]), { split: 2 }))];
+        hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart]), { split: 2, key: `hot:${d}` }))];
 }
 
 // Predictions, split by division: each division's match write-ups ("Match #2:  (F Div.) ...")
@@ -476,7 +491,7 @@ function compareView() {
       const which = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
       parts.push(statTable(ts.map(teamRow), { id: "cmp-teams", nameHeader: "Team", name: (r) => r.label, removeFrom: picked.teams }),
         el("h2", {}, `Players on ${which} — ${players.length}`),
-        statTable(players, { id: "cmp-team-players", nameHeader: "Player", name: (r) => r.label }));
+        statTable(players, { id: "cmp-team-players", nameHeader: "Player", name: (r) => r.label, addable: true }));   // + adds a player too
     }
   }
   if (picked.players.length) {
@@ -541,6 +556,7 @@ function pickPlayer(t, p) {
   showPlayer(t, p);
 }
 function pickTeam(t) {
+  collapsed.clear();
   pickSearch();
   $("division").value = t.code[0];
   resetViewSorts();
@@ -551,6 +567,7 @@ function pickTeam(t) {
 }
 // Back to the default view: the saved division and team, the search box empty.
 function resetView() {
+  collapsed.clear();
   closeSearch();
   $("division").value = homeDivision();
   resetViewSorts();
@@ -561,6 +578,7 @@ function resetView() {
   fillPlayers();
 }
 function showPlayer(t, p) {
+  collapsed.clear();
   $("division").value = t.code[0];
   fillTeams();
   $("team").value = t.code;
@@ -584,9 +602,9 @@ function render() {
 $("newsletter").onchange = () => { saveView(); loadNewsletter(); };
 $("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 // Picking from the dropdowns replaces a searched-for player, so the box empties.
-$("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
-$("team").onchange = () => { saveView(); closeSearch(); fillPlayers(); };
-$("player").onchange = () => { closeSearch(); render(); };
+$("division").onchange = () => { collapsed.clear(); closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
+$("team").onchange = () => { collapsed.clear(); saveView(); closeSearch(); fillPlayers(); };
+$("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 $("trophy").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;

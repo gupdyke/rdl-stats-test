@@ -125,3 +125,4 @@ table.plain .frz0 { left: 0; }
 table.plain .rank { width: 2.6em; min-width: 2.6em; max-width: 2.6em; }   /* leader boards: # then Player, both frozen */
 table.plain .frz1 { left: 2.6em; box-shadow: inset -2px 0 var(--muted); }   /* # already draws the line between them */
 table.plain .frz + :not(.frz) { border-left: 0; }   /* the frozen column draws that line */
+th.corner button.collapse { font-size: 12px; font-weight: 600; padding: 1px 8px; }   /* Collapse / Expand, top-left of the table picked from */
