@@ -478,12 +478,15 @@ const shortDate = (iso) => new Date(`${iso}T12:00`).toLocaleDateString("en-US", 
 
 // A location as printed ("Upper Deck 13+15"), with the bar's address under it as a Google
 // Maps link when it matches one of the newsletters' "WHERE WE PLAY" bars (catalog.venues).
+// Current season only (Jerry): past seasons' bars may have moved or closed, so they stay plain text.
 function locationCell(where) {
-  const v = venueFor(where);
+  const current = seasonOf(catalog.rdl[catalog.rdl.length - 1] || {});
+  const v = $("season").value === current ? venueFor(where) : null;
   if (!v) return where;
   const cell = document.createDocumentFragment();
-  const a = el("a", { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${v.name}, ${v.street}, ${v.city.replace(/^(north|NW) /i, "")}, NC`)}`,
-    target: "_blank", rel: "noopener" }, `${v.street}, ${v.city}`);
+  const place = [v.name, v.street, v.city.replace(/^(north|NW) /i, ""), "NC"].filter(Boolean).join(", ");
+  const a = el("a", { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`,
+    target: "_blank", rel: "noopener" }, [v.street, v.city].filter(Boolean).join(", "));   // no street: just the city
   cell.append(where, el("br"), a);
   return cell;
 }
