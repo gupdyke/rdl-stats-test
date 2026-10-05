@@ -153,6 +153,22 @@ const playerRow = (t, p) => ({ ...p, label: playerLabel(t, p), div: t.code[0], k
 const teamRow = (t) => ({ ...t.totals, label: `${t.code} - ${t.name}`, key: t.code, kind: "team" });
 const byPlayerId = (a, b) => a.div.localeCompare(b.div) || a.number - b.number;
 
+// ---- saved view: Season, Week and Division, so the page opens where it was left ----
+// Saved in this browser when those dropdowns change (a search jumping to another
+// division doesn't count). If a newer week has come out since, the page opens on it.
+const SAVED = "rdl-stats-view";
+const saved = (() => { try { return JSON.parse(localStorage.getItem(SAVED)) || {}; } catch { return {}; } })();
+function saveView() {
+  Object.assign(saved, { week: $("newsletter").value, division: $("division").value,
+    latest: catalog.rdl[catalog.rdl.length - 1]?.file });
+  try { localStorage.setItem(SAVED, JSON.stringify(saved)); } catch {}
+}
+// The saved division if this week has it, else the first one.
+function homeDivision() {
+  const ok = "division" in saved && [...$("division").options].some((o) => o.value === saved.division);
+  return ok ? saved.division : $("division").options[1]?.value || "";
+}
+
 // Season (from the file name: Sp23, Fa26, ...) then Week. The catalog comes
 // in chronological order, so seasons and weeks list oldest first.
 const seasonOf = (n) => n.season || "Other";
@@ -176,7 +192,7 @@ async function loadNewsletter() {
   const first = !$("division").options.length;
   fill($("division"), [["", "All divisions"], ...divs], true);
   fillTrophies();
-  if (first) $("division").value = divs[0]?.[0] || "";
+  if (first) $("division").value = homeDivision();
   fillTeams();
   if (prevName) followPlayer(prevName);
 }
@@ -430,11 +446,11 @@ function pickTeam(t) {
   $("player").value = "none";   // just the team, even when one of its players was showing
   fillPlayers();
 }
-// Back to the default view: the first division with all teams and players, the search box empty.
+// Back to the default view: the saved division's team totals, the search box empty.
 function resetView() {
   closeSearch();
   $("trophy").value = "";
-  $("division").value = $("division").options[1]?.value || "";
+  $("division").value = homeDivision();
   resetViewSorts();
   $("team").value = "";
   fillTeams();
@@ -454,10 +470,10 @@ function showPlayer(t, p) {
 // ---- wiring --------------------------------------------------------------
 const render = () => renderRDL();
 
-$("newsletter").onchange = loadNewsletter;
-$("season").onchange = () => { fillWeeks(); loadNewsletter(); };
+$("newsletter").onchange = () => { saveView(); loadNewsletter(); };
+$("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 // Picking from the dropdowns replaces a searched-for player, so the box empties.
-$("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); };
+$("division").onchange = () => { saveView(); closeSearch(); resetViewSorts(); fillTeams(); };
 // Picking a team or player leaves Trophy darts; picking a category shows it.
 $("team").onchange = () => { closeSearch(); $("trophy").value = ""; fillPlayers(); };
 $("player").onchange = () => { closeSearch(); $("trophy").value = ""; render(); };
@@ -476,7 +492,11 @@ document.querySelectorAll(".groups input").forEach((c) => (c.onchange = render))
   catch (e) { return message(e.message, "error"); }
   const seasons = [...new Set(catalog.rdl.map(seasonOf))];
   fill($("season"), seasons.map((x) => [x, x]));
-  $("season").value = seasons[seasons.length - 1] || "";   // start on the latest season and week
+  // Start on the saved week, or the latest when there's a newer one (or nothing saved).
+  const latest = catalog.rdl[catalog.rdl.length - 1];
+  const start = (saved.latest === latest?.file && catalog.rdl.find((n) => n.file === saved.week)) || latest;
+  $("season").value = start ? seasonOf(start) : "";
   fillWeeks();
+  if (start) $("newsletter").value = start.file;
   loadNewsletter();
 })();
