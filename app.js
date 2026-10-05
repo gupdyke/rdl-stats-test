@@ -223,10 +223,11 @@ function renderRDL() {
   const owner = num && teams.find((t) => t.code === code);
   const p = owner && owner.players.find((p) => String(p.number) === num);
   const noPlayers = $("player").value === "none";   // Player: None = team rows only
-  const trophy = (news.trophies || []).find((b) => b.category === $("trophy").value);
+  const trophies = $("trophy").value === "*" ? news.trophies || []
+    : (news.trophies || []).filter((b) => b.category === $("trophy").value);
   let view, more = [];   // more = the division's players list, hidden while comparing
-  if (trophy) {
-    view = trophyView(trophy);
+  if (trophies.length) {
+    view = trophyView(trophies);
   } else if (p) {
     view = [el("h2", {}, `${p.name} — ${owner.code} - ${owner.name}`),
       statTable(withLabels([{ ...owner, players: [p] }]), { id: "main", nameHeader: "Player", name: (r) => r.label, addable: true })];
@@ -276,29 +277,42 @@ function trophyLines(lines) {
 }
 function fillTrophies() {
   const cats = (news?.trophies || []).map((b) => [b.category, b.category]);
-  fill($("trophy"), [["", "None"], ...cats], true);
+  fill($("trophy"), [["", "None"], ["*", "All"], ...cats], true);   // All = every category
 }
-function trophyView(block) {
-  const div = $("division").value;
-  const divs = Object.keys(block.divisions).filter((d) => !div || d === div);
-  const head = el("tr");
-  for (const h of ["Division", "Result", "Player and team"]) head.append(el("th", { className: "name" }, h));
+// One boxed table, styled like the stats tables: a title row over the columns.
+// rows: [[first column, lines]]; lines[0] is the result, the rest the player(s) and team.
+function trophyTable(title, firstHeader, rows) {
+  const top = el("tr"), sub = el("tr");
+  top.append(el("th", { className: "grp box", colSpan: 3 }, title));
+  for (const h of [firstHeader, "Result", "Player and team"]) sub.append(el("th", { className: "name bl br" }, h));
   const tbody = el("tbody");
-  for (const d of divs) {
-    const [result = "", ...who] = trophyLines(block.divisions[d]);
-    const none = /^\(none reported\)$/i.test(result);
+  for (const [first, lines] of rows) {
+    const [result = "", ...who] = trophyLines(lines);
     const tr = el("tr");
-    tr.append(el("td", { className: "name" }, `${d} Division`),
-      el("td", { className: "name" }, none ? "None reported" : result),
-      el("td", { className: "name lines" }, who.join("\n")));
+    tr.append(el("td", { className: "name bx bl br" }, first),
+      el("td", { className: "name bx bl br" }, /^\(none reported\)$/i.test(result) ? "None reported" : result),
+      el("td", { className: "name lines bx bl br" }, who.join("\n")));
     tbody.append(tr);
   }
-  const table = el("table", { className: "trophy" });
+  const table = el("table", { className: "stats trophy" });
   table.append(el("thead"), tbody);
-  table.tHead.append(head);
+  table.tHead.append(top, sub);
   const wrap = el("div", { className: "scroll" });
   wrap.append(table);
-  return [el("h2", {}, `Trophy darts: ${block.category} — ${div ? `${div} Division` : "All divisions"}`), wrap];
+  return wrap;
+}
+// One category: every division (or the one picked). All: with a division, every
+// category in one table; with All divisions, a table per category.
+function trophyView(blocks) {
+  const div = $("division").value;
+  const where = div ? `${div} Division` : "All divisions";
+  if (blocks.length > 1 && div) {
+    return [el("h2", {}, `Trophy darts — ${where}`),
+      trophyTable(`${div} Division`, "Category", blocks.map((b) => [b.category, b.divisions[div] || []]))];
+  }
+  return [el("h2", {}, `Trophy darts — ${blocks.length > 1 ? "all categories, " : ""}${where}`),
+    ...blocks.map((b) => trophyTable(b.category, "Division",
+      Object.keys(b.divisions).filter((d) => !div || d === div).map((d) => [`${d} Division`, b.divisions[d]])))];
 }
 
 // ---- RDL compare: teams and players added with "Add to comparison" -----------
