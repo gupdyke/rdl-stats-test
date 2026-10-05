@@ -324,7 +324,7 @@ function trophyTable(title, firstHeader, rows) {
   return boxTable(title, [firstHeader, "Result", "Player and team"], rows.map(([first, lines]) => {
     const [result = "", ...who] = trophyLines(lines);
     return [first, /^\(none reported\)$/i.test(result) ? "None reported" : result, who.join("\n")];
-  }), { lines: [2] });
+  }), { lines: [0, 2] });
 }
 // One category: every division (or the one picked). All: with a division, every
 // category in one table; with All divisions, a table per category.
@@ -333,7 +333,7 @@ function trophyView(blocks) {
   const where = div ? `${div} Division` : "All divisions";
   if (blocks.length > 1 && div) {
     return [el("h2", {}, `Trophy darts — ${where}`),
-      trophyTable(`${div} Division`, "Category", blocks.map((b) => [b.category, b.divisions[div] || []]))];
+      trophyTable(`${div} Division`, "Category", blocks.map((b) => [b.category.replace("High Out - ", "High Out -\n"), b.divisions[div] || []]))];   // two lines: "High Out -" / "301/501/1001"
   }
   return [el("h2", {}, `Trophy darts — ${blocks.length > 1 ? "all categories, " : ""}${where}`),
     ...blocks.map((b) => trophyTable(b.category, "Division",
@@ -349,10 +349,12 @@ function trophyPage() {
 // ---- Leader boards (Pg6-9), Hot Darts (Pg3), Predictions (Pg5) -----------------
 // A table drawn like the Standings tables: a title across the top, then two boxes with
 // lines only around each box: the first `split` columns (the names), and the rest.
-// numeric: right-aligned columns; lines: columns that keep their line breaks.
-function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [] } = {}) {
+// numeric: right-aligned columns; lines: columns that keep their line breaks; freeze: how
+// many columns on the left stay put while the rest scroll sideways (1 or 2).
+function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [], freeze = 1 } = {}) {
   const n = headers.length;
   const cls = (i) => [numeric.includes(i) ? "" : "name", lines.includes(i) && "lines", "bx",
+    i < freeze && `frz frz${i}`, freeze === 2 && i === 0 && "rank",
     (i === 0 || i === split) && "bl", (i === split - 1 || i === n - 1) && "br"].filter(Boolean).join(" ");
   const top = el("tr"), sub = el("tr");
   top.append(el("th", { className: "grp box", colSpan: n }, title));
@@ -390,7 +392,7 @@ function leadersView() {
       prev = r.rank;
       return [String(rank), r.name, r.team.replace(/^([A-H]\d+)\/\s*/, "$1 - "), ...r.stats.map((v, i) => String(fmt(v, b.columns[i])))];
     });
-    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, { split: 3, numeric: [0, 3, 4, 5] });
+    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, { split: 3, numeric: [0, 3, 4, 5], freeze: 2 });
   };
   const divs = divisionsShown([...new Set(boards.flatMap((b) => Object.keys(b.divisions)))]);
   return [el("h2", {}, `Leader boards — ${where()} ${boards[0].note}`.trim()),

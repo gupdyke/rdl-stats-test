@@ -86,8 +86,8 @@ th .arrow.idle { opacity: .45; font-weight: 400; }   /* sortable, not sorted by 
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */
 table.plain td { vertical-align: top; }
 table.plain th { cursor: default; }   /* newsletter tables don't sort */
-/* Newsletter tables: a thin line between every column; the boxes' heavy edges stay. */
-table.plain thead tr:last-child th:not(.bl), table.plain td:not(.bl) { border-left: 1px solid var(--line); }
+/* Newsletter tables: the same line between every column as around the boxes. */
+table.plain thead tr:last-child th, table.plain td { border-left: 2px solid var(--muted); border-right: 2px solid var(--muted); }
 .scroll + .scroll { margin-top: 16px; }   /* tables one under another */
 td.lines { white-space: pre-line; }   /* trophy darts: player and team on their own lines */
 
@@ -116,3 +116,12 @@ p.prediction { max-width: 70ch; margin: 0 0 12px; }   /* the newsletter's picks,
 .boards { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }   /* a division's leader boards, side by side */
 .boards > .scroll { margin-top: 0 !important; max-width: 100%; }
 h3 { font-size: 15px; margin: 20px 0 8px; }
+/* Newsletter tables: the left column(s) stay put while the rest scroll sideways, like the
+   Standings name column (box-shadow for the side lines: collapsed borders don't follow a sticky cell). */
+table.plain .frz, table.plain thead tr:last-child th.frz { position: sticky; z-index: 1; background: var(--panel); border-left: 0; border-right: 0;
+  box-shadow: inset 2px 0 var(--muted), inset -2px 0 var(--muted); }
+table.plain tbody tr:nth-child(even) .frz { background: var(--stripe); }
+table.plain .frz0 { left: 0; }
+table.plain .rank { width: 2.6em; min-width: 2.6em; max-width: 2.6em; }   /* leader boards: # then Player, both frozen */
+table.plain .frz1 { left: 2.6em; box-shadow: inset -2px 0 var(--muted); }   /* # already draws the line between them */
+table.plain .frz + :not(.frz) { border-left: 0; }   /* the frozen column draws that line */
