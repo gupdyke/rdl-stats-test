@@ -86,6 +86,8 @@ th .arrow.idle { opacity: .45; font-weight: 400; }   /* sortable, not sorted by 
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */
 table.plain td { vertical-align: top; }
 table.plain th { cursor: default; }   /* newsletter tables don't sort */
+/* Newsletter tables: a thin line between every column; the boxes' heavy edges stay. */
+table.plain thead tr:last-child th:not(.bl), table.plain td:not(.bl) { border-left: 1px solid var(--line); }
 .scroll + .scroll { margin-top: 16px; }   /* tables one under another */
 td.lines { white-space: pre-line; }   /* trophy darts: player and team on their own lines */
 
