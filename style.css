@@ -131,3 +131,5 @@ th.corner button.collapse { font-size: 12px; font-weight: 600; padding: 1px 8px;
 button.cmp.in { color: var(--pick-fg); border-color: var(--pick-fg); font-weight: 700; }   /* − : in the comparison */
 /* Standings and comparison tables: 4px either side of each column (was 10px, 6px on phones) to fit more on screen. */
 table.stats:not(.plain) th, table.stats:not(.plain) td { padding-left: 4px; padding-right: 4px; }
+/* ... except a little more room before each vertical line (the last column of a box). */
+table.stats:not(.plain) th.br, table.stats:not(.plain) td.br { padding-right: 6px; }
