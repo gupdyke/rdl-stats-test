@@ -110,3 +110,6 @@ table.stats:not(.trophy) tbody tr:nth-child(even) > :first-child { background: v
 table.stats tbody tr.picked > td, table.stats:not(.trophy) tbody tr.picked > :first-child { background: var(--pick); }
 tr.picked td.name { font-weight: 600; }
 p.prediction { max-width: 70ch; margin: 0 0 12px; }   /* the newsletter's picks, one paragraph per match */
+.boards { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }   /* a division's leader boards, side by side */
+.boards > .scroll { margin-top: 0 !important; max-width: 100%; }
+h3 { font-size: 15px; margin: 20px 0 8px; }

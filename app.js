@@ -219,7 +219,6 @@ async function loadNewsletter() {
   const first = !$("division").options.length;
   fill($("division"), [["", "All divisions"], ...divs], true);
   fillTrophies();
-  fill($("board"), (news.leaders || []).map((b) => [b.board, b.board]), true);
   if (first) $("division").value = homeDivision();
   fillTeams();
   if (first && homeTeam()) { $("team").value = homeTeam(); fillPlayers(); }
@@ -384,21 +383,31 @@ function boxTable(title, headers, rows, numeric = []) {
 const divisionsShown = (divs) => divs.filter((d) => !$("division").value || d === $("division").value).sort();
 const where = () => ($("division").value ? `${$("division").value} Division` : "All divisions");
 
-// The newsletter's lists, a table per division: rank (blank = tied with the one above),
-// player, team, and its three numbers. Win % and averages to 3 places, like everywhere else.
+// Leader boards: the newsletter's three lists, shown together for each division: rank
+// (blank = tied with the one above), player, team, and its three numbers. Win % and
+// averages to 3 places, like everywhere else. (The end-of-season Doubles list is left out.)
+const LEADER_BOARDS = [["Singles", "Singles Win Percentage"], ["All-Star", "All-Star Point Average (ASP)"],
+  ["Singles + Doubles", "Singles + Doubles Win Percentage"]];
 function leadersView() {
-  const b = (news.leaders || []).find((x) => x.board === $("board").value);
-  if (!b) return [el("p", { className: "empty" }, "No leader boards in this newsletter.")];
+  const boards = LEADER_BOARDS.map(([key, title]) => ({ ...(news.leaders || []).find((x) => x.board === key), title }))
+    .filter((b) => b.divisions);
+  if (!boards.length) return [el("p", { className: "empty" }, "No leader boards in this newsletter.")];
   const fmt = (v, col) => (typeof v === "number" && /%|Ave/.test(col) ? v.toFixed(3) : v ?? "");
-  return [el("h2", {}, `Leader board: ${b.board} — ${where()} ${b.note}`.trim()),
-    ...divisionsShown(Object.keys(b.divisions)).map((d) => {
-      let prev;
-      const rows = b.divisions[d].map((r) => {
-        const rank = r.rank === prev ? "" : r.rank ?? "";
-        prev = r.rank;
-        return [String(rank), r.name, r.team.replace(/^([A-H]\d+)\/\s*/, "$1 - "), ...r.stats.map((v, i) => String(fmt(v, b.columns[i])))];
-      });
-      return boxTable(`${d} Division`, ["#", "Player", "Team", ...b.columns], rows, [0, 3, 4, 5]);
+  const table = (b, d) => {
+    let prev;
+    const rows = (b.divisions[d] || []).map((r) => {
+      const rank = r.rank === prev ? "" : r.rank ?? "";
+      prev = r.rank;
+      return [String(rank), r.name, r.team.replace(/^([A-H]\d+)\/\s*/, "$1 - "), ...r.stats.map((v, i) => String(fmt(v, b.columns[i])))];
+    });
+    return boxTable(b.title, ["#", "Player", "Team", ...b.columns], rows, [0, 3, 4, 5]);
+  };
+  const divs = divisionsShown([...new Set(boards.flatMap((b) => Object.keys(b.divisions)))]);
+  return [el("h2", {}, `Leader boards — ${where()} ${boards[0].note}`.trim()),
+    ...divs.flatMap((d) => {
+      const row = el("div", { className: "boards" });   // side by side when there's room
+      row.append(...boards.map((b) => table(b, d)));
+      return [el("h3", {}, `${d} Division`), row];
     })];
 }
 
@@ -412,17 +421,26 @@ function hotView() {
         hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart])))];
 }
 
-// Predictions: the newsletter's paragraphs, each match's label ("Match #2:") in bold.
+// Predictions: the newsletter's paragraphs, split by division. The opening remarks come
+// first; then each division's match write-ups ("Match #2:  (F Div.) ...") and its picks for
+// the rest of the week ("F Division: Two Time 14, ..."), labels in bold.
 function predictionsView() {
   const ps = news.predictions || [];
   if (!ps.length) return [el("p", { className: "empty" }, "No predictions in this newsletter.")];
-  return [el("h2", {}, "Predictions for the week"), ...ps.map((t) => {
+  const para = (t, label) => {
     const m = t.match(/^((?:Match(?:es)?\b[^:]*|[A-H] Division):)\s*(.*)$/);
     const p = el("p", { className: "prediction" });
-    if (m) p.append(el("b", {}, m[1]), ` ${m[2]}`);
+    if (label) p.append(el("b", {}, label), ` ${m ? m[2] : t}`);
+    else if (m) p.append(el("b", {}, m[1]), ` ${m[2]}`);
     else p.textContent = t;
     return p;
-  })];
+  };
+  const divOf = (t) => t.match(/\(([A-H]) Div[^)]*\)/)?.[1] || t.match(/^([A-H]) Division:/)?.[1];
+  const intro = ps.filter((t) => !divOf(t) && !/^And the remaining/.test(t));
+  const divs = divisionsShown([...new Set(ps.map(divOf).filter(Boolean))]);
+  return [el("h2", {}, `Predictions for the week — ${where()}`), ...intro.map((t) => para(t)),
+    ...divs.flatMap((d) => [el("h3", {}, `${d} Division`),
+      ...ps.filter((t) => divOf(t) === d).map((t) => (/^[A-H] Division:/.test(t) ? para(t, "Other matches:") : para(t)))])];
 }
 
 // ---- RDL compare: teams and players added with + -------------------------------
@@ -578,7 +596,7 @@ $("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 $("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
 $("team").onchange = () => { saveView(); closeSearch(); fillPlayers(); };
 $("player").onchange = () => { closeSearch(); render(); };
-$("trophy").onchange = $("board").onchange = render;
+$("trophy").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
 // ? next to Clear opens and closes the how-comparing-works box (a tap, so it works on phones).
@@ -593,7 +611,14 @@ $("search").onkeydown = (e) => {
   if (e.key === "Enter") searchHits(e.target.value)[0]?.pick();
 };
 $("search").onblur = () => { $("search-results").hidden = true; };
-document.querySelectorAll(".groups input").forEach((c) => (c.onchange = render));
+// The Show checkboxes are remembered in this browser, so the next visit opens with the same columns.
+const groupBoxes = document.querySelectorAll(".groups input");
+if (Array.isArray(saved.groups)) groupBoxes.forEach((c) => (c.checked = saved.groups.includes(c.value)));
+groupBoxes.forEach((c) => (c.onchange = () => {
+  saved.groups = [...groupBoxes].filter((b) => b.checked).map((b) => b.value);
+  try { localStorage.setItem(SAVED, JSON.stringify(saved)); } catch {}
+  render();
+}));
 
 (async () => {
   try { catalog = await getJSON("/api/catalog"); }
