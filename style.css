@@ -129,3 +129,5 @@ table.plain .frz1 { left: 2.6em; box-shadow: inset -2px 0 var(--muted); }   /* #
 table.plain .frz + :not(.frz) { border-left: 0; }   /* the frozen column draws that line */
 th.corner button.collapse { font-size: 12px; font-weight: 600; padding: 1px 8px; }   /* Collapse / Expand, top-left of the table picked from */
 button.cmp.in { color: var(--pick-fg); border-color: var(--pick-fg); font-weight: 700; }   /* − : in the comparison */
+/* Standings and comparison tables: 4px either side of each column (was 10px, 6px on phones) to fit more on screen. */
+table.stats:not(.plain) th, table.stats:not(.plain) td { padding-left: 4px; padding-right: 4px; }
