@@ -95,7 +95,9 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable }) {
   const teamRows = nameHeader === "Team";
   const groups = [...[...document.querySelectorAll(".groups input:checked")].map((c) => GROUPS[c.value])
       .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) })),
-    ...(teamRows ? [STANDINGS] : [])];
+    ...(teamRows ? [STANDINGS] : []),
+    // A team's players table: the Team total row gets the team's match record (players' cells stay empty).
+    ...(!teamRows && total ? [{ ...STANDINGS, cols: STANDINGS.cols.filter((c) => c.k === "m_w") }] : [])];
   if (sort.key === NAME) {
     const cmp = nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b));
     rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
