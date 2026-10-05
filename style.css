@@ -55,6 +55,7 @@ button { font: inherit; padding: 4px 10px; color: var(--fg); background: var(--b
                          background: none; padding: 5px 10px; font-size: 14px; }
 .results button:hover, .results button:focus { background: var(--stripe); }
 .results .none { padding: 5px 10px; font-size: 14px; }
+.results .group { padding: 6px 10px 2px; font-size: 12px; font-weight: 600; color: var(--muted); }   /* Teams / Players headings */
 .chip.missing { color: var(--muted); border-style: dashed; }
 .stamp { margin-top: 24px; font-size: 11px; color: var(--muted); }
 th.grp.box { border: 2px solid var(--muted); border-bottom: 2px solid var(--line); }
