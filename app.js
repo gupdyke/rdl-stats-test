@@ -93,11 +93,14 @@ function message(text, cls = "empty") { out.replaceChildren(el("p", { className:
 // Boxed groups: left/right borders on a group's first and last columns.
 const edge = (g, c) => (!g.box ? "" : ["bx", c === g.cols[0] && "bl", c === g.cols[g.cols.length - 1] && "br"].filter(Boolean).join(" "));
 function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, defaultSort }) {
-  const sort = sorts[id] || defaultSort || { key: null, desc: true };
   const teamRows = nameHeader === "Team";
-  const groups = [...(teamRows ? [STANDINGS] : []),
-    ...[...document.querySelectorAll(".groups input:checked")].map((c) => GROUPS[c.value])
+  const shown = [...document.querySelectorAll(".groups input:checked")].map((c) => c.value);
+  const groups = [...(teamRows && shown.includes("standings") ? [STANDINGS] : []),   // Standings: team rows only
+    ...shown.filter((v) => GROUPS[v]).map((v) => GROUPS[v])
       .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) }))];
+  // The default sort only applies while its column is showing (no standings order with Standings off).
+  const shownDefault = defaultSort && groups.some((g) => g.cols.some((c) => c.k === defaultSort.key)) ? defaultSort : null;
+  const sort = sorts[id] || shownDefault || { key: null, desc: true };
   if (sort.key === NAME) {
     const cmp = nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b));
     rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
