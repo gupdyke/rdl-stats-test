@@ -255,10 +255,9 @@ function renderRDL() {
   // and the division's long players list is left out. A team or player picked in the dropdowns
   // that's already in the comparison isn't shown twice.
   const comparison = compareView();
-  if (!comparison.length) return out.replaceChildren(...view, ...more), updateAddButton();
+  if (!comparison.length) return out.replaceChildren(...view, ...more);
   const inComparison = p ? picked.players.includes(p.name) : team ? picked.teams.includes(team.code) : false;
   out.replaceChildren(...(inComparison ? [] : [...view, el("hr", { className: "cmp-end" })]), ...comparison);
-  updateAddButton();
 }
 
 // ---- Trophy darts (Pg3): one category, every division or the one picked ------
@@ -315,28 +314,12 @@ function trophyView(blocks) {
       Object.keys(b.divisions).filter((d) => !div || d === div).map((d) => [`${d} Division`, b.divisions[d]])))];
 }
 
-// ---- RDL compare: teams and players added with "Add to comparison" -----------
-// Search row: Add puts the selected player in the comparison, or the selected team when
-// no player is selected. Clear takes everything out and goes back to the default view.
-function toAdd() {
-  const sp = selectedPlayer(), code = $("team").value;
-  if (sp) return { list: picked.players, key: sp.p.name, label: sp.p.name };
-  return code ? { list: picked.teams, key: code, label: `${code} - ${allTeams().find((t) => t.code === code)?.name}` } : null;
-}
-function addPicked() {
-  const a = toAdd();
-  if (a && !a.list.includes(a.key)) a.list.push(a.key);
-  render();
-}
+// ---- RDL compare: teams and players added with + -------------------------------
+// Search row: Clear takes everything out of the comparison and goes back to the default view.
+// (A + on a search result, or on a Division view row, adds one.)
 function clearPicked() {
   picked.teams.length = picked.players.length = 0;
   resetView();
-}
-function updateAddButton() {
-  const a = toAdd();
-  const added = a && a.list.includes(a.key);
-  $("cmp-add").disabled = !a || added;
-  $("cmp-add").title = !a ? "Pick a player or team first" : added ? `${a.label} is already in the comparison` : `Add ${a.label} to comparison`;
 }
 // Teams are keyed by code, players by name (so they carry across seasons and weeks).
 const picked = { teams: [], players: [] };   // keys, in the order added
@@ -386,7 +369,8 @@ function compareView() {
 }
 
 // ---- RDL search: players and teams, any part of a name, either order ---------
-// Each hit is {label, pick}. Picking jumps there and empties the box.
+// Each hit is {label, pick, list, key}. Picking jumps there; its + adds it to the comparison
+// (list, key). Either empties the box.
 const words = (q) => q.toLowerCase().split(/[\s,]+/).filter(Boolean);
 function searchPlayers(q) {
   const ws = words(q);
@@ -395,12 +379,12 @@ function searchPlayers(q) {
     .filter(({ p }) => ws.every((w) => p.name.toLowerCase().includes(w)))
     .sort((a, b) => a.p.name.localeCompare(b.p.name))
     .slice(0, 30)
-    .map(({ t, p }) => ({ label: playerLabel(t, p), pick: () => pickPlayer(t, p) }));
+    .map(({ t, p }) => ({ label: playerLabel(t, p), pick: () => pickPlayer(t, p), list: picked.players, key: p.name }));
 }
 function searchTeams(q) {   // matches the ID or the name: "f7", "nein", "dart"
   const ws = words(q);
   if (!ws.length || !news) return [];
-  return allTeams().map((t) => ({ label: `${t.code} - ${t.name}`, pick: () => pickTeam(t) }))
+  return allTeams().map((t) => ({ label: `${t.code} - ${t.name}`, pick: () => pickTeam(t), list: picked.teams, key: t.code }))
     .filter((h) => ws.every((w) => h.label.toLowerCase().includes(w)))
     .slice(0, 30);
 }
@@ -409,10 +393,13 @@ const searchHits = (q) => [...searchTeams(q), ...searchPlayers(q)];
 function renderSearch() {
   const q = $("search").value, teams = searchTeams(q), players = searchPlayers(q), ul = $("search-results");
   const item = (h) => {
+    const add = addButton(h.list, h.key, h.label);
+    add.onclick = null;
+    add.onmousedown = (e) => { e.preventDefault(); h.list.push(h.key); pickSearch(); render(); };   // before the input's blur
     const b = el("button", { type: "button" }, h.label);
-    b.onmousedown = (e) => { e.preventDefault(); h.pick(); };   // before the input's blur
-    const li = el("li");
-    li.append(b);
+    b.onmousedown = (e) => { e.preventDefault(); h.pick(); };
+    const li = el("li", { className: "hit" });
+    li.append(add, b);
     return li;
   };
   ul.replaceChildren();
@@ -475,7 +462,6 @@ $("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); }
 $("team").onchange = () => { closeSearch(); $("trophy").value = ""; fillPlayers(); };
 $("player").onchange = () => { closeSearch(); $("trophy").value = ""; render(); };
 $("trophy").onchange = () => { closeSearch(); render(); };
-$("cmp-add").onclick = addPicked;
 $("view-reset").onclick = clearPicked;
 $("search").oninput = $("search").onfocus = renderSearch;
 $("search").onkeydown = (e) => {

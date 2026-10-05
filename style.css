@@ -54,6 +54,8 @@ button { font: inherit; padding: 4px 10px; color: var(--fg); background: var(--b
 .results button { display: block; width: 100%; text-align: left; border: 0; border-radius: 0;
                          background: none; padding: 5px 10px; font-size: 14px; }
 .results button:hover, .results button:focus { background: var(--stripe); }
+.results .hit { display: flex; align-items: center; padding-left: 10px; }   /* + then the name */
+.results button.cmp { flex: none; width: auto; margin: 0; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; }
 .results .none { padding: 5px 10px; font-size: 14px; }
 .results .group { padding: 6px 10px 2px; font-size: 12px; font-weight: 600; color: var(--muted); }   /* Teams / Players headings */
 .chip.missing { color: var(--muted); border-style: dashed; }
@@ -84,7 +86,6 @@ td.lines { white-space: pre-line; }   /* trophy darts: player and team on their 
   select { min-width: 0; width: 100%; }
   .search { flex: 1 1 0; min-width: 0; }
   .search input { width: 100%; }
-  .long { display: none; }   /* "Add to comparison" reads "Add" */
   th, td { padding: 4px 6px; }
   table.stats:not(.trophy) td.name { white-space: normal; width: 40vw; min-width: 8em; }
   table.stats:not(.trophy) tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--panel);
