@@ -386,7 +386,7 @@ function compareView() {
 }
 
 // ---- RDL search: players and teams, any part of a name, either order ---------
-// Each hit is {label, pick}. Picking jumps there; the box keeps the name until Clear.
+// Each hit is {label, pick}. Picking jumps there and empties the box.
 const words = (q) => q.toLowerCase().split(/[\s,]+/).filter(Boolean);
 function searchPlayers(q) {
   const ws = words(q);
@@ -425,19 +425,22 @@ function closeSearch() {
   $("search").value = "";
   $("search-results").hidden = true;
 }
-function pickPlayer(t, p) {
+function pickSearch() {   // empty the box and drop focus, so a phone's keyboard closes
   closeSearch();
-  $("search").value = p.name;
+  $("search").blur();
+}
+function pickPlayer(t, p) {
+  pickSearch();
   showPlayer(t, p);
 }
 function pickTeam(t) {
-  closeSearch();
-  $("search").value = `${t.code} - ${t.name}`;
+  pickSearch();
   $("trophy").value = "";
   $("division").value = t.code[0];
   resetViewSorts();
   fillTeams();
   $("team").value = t.code;
+  $("player").value = "none";   // just the team, even when one of its players was showing
   fillPlayers();
 }
 // Back to the default view: the first division with all teams and players, the search box empty.
