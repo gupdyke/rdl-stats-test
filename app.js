@@ -35,7 +35,7 @@ const GROUPS = {
   allstar:  { title: "All-Star", box: true, cols: [
     { h: "Points", f: num("asp", 1), k: "asp" },
     { h: "Avg", f: num("asp_avg", 3), k: "asp_avg" } ] },
-  tiebreak: { title: "Tiebreakers", cols: [
+  tiebreak: { title: "Tiebreakers", box: true, cols: [
     { h: "W-L", f: wl("tb_w", "tb_l"), k: "tb_w" } ] },
 };
 // Team rows end with the team's standings (match record and points, from Pg2),
@@ -129,7 +129,8 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
     }
   }
   const line = (r, label, cls) => {
-    const tr = el("tr", { className: cls || "" });
+    const inCmp = addable && r.key != null && (r.kind === "team" ? picked.teams : picked.players).includes(r.key);
+    const tr = el("tr", { className: [cls, inCmp && "picked"].filter(Boolean).join(" ") });   // in the comparison: highlighted
     const td = el("td", { className: "name bx bl br" });
     if (removeFrom) td.append(removeButton(removeFrom, r.key, r.label));   // comparison tables
     else if (addable && r.key != null) td.append(addButton(r.kind === "team" ? picked.teams : picked.players, r.key, r.label));
@@ -218,6 +219,7 @@ async function loadNewsletter() {
   const first = !$("division").options.length;
   fill($("division"), [["", "All divisions"], ...divs], true);
   fillTrophies();
+  fill($("board"), (news.leaders || []).map((b) => [b.board, b.board]), true);
   if (first) $("division").value = homeDivision();
   fillTeams();
   if (first && homeTeam()) { $("team").value = homeTeam(); fillPlayers(); }
@@ -257,7 +259,7 @@ function fillPlayers() {
   render();
 }
 
-function renderRDL() {
+function renderStandings() {
   if (!news) return;
   const teams = teamsOf();
   const team = teams.find((t) => t.code === $("team").value);
@@ -266,12 +268,8 @@ function renderRDL() {
   const owner = num && teams.find((t) => t.code === code);
   const p = owner && owner.players.find((p) => String(p.number) === num);
   const noPlayers = $("player").value === "none";   // Player: None = team rows only
-  const trophies = $("trophy").value === "*" ? news.trophies || []
-    : (news.trophies || []).filter((b) => b.category === $("trophy").value);
   let view, more = [];   // more = the division's players list, hidden while comparing
-  if (trophies.length) {
-    view = trophyView(trophies);
-  } else if (p) {
+  if (p) {
     view = [el("h2", {}, `${p.name} — ${owner.code} - ${owner.name}`),
       statTable(withLabels([{ ...owner, players: [p] }]), { id: "main", nameHeader: "Player", name: (r) => r.label, addable: true })];
   } else if (team && noPlayers) {
@@ -320,7 +318,7 @@ function trophyLines(lines) {
 }
 function fillTrophies() {
   const cats = (news?.trophies || []).map((b) => [b.category, b.category]);
-  fill($("trophy"), [["", "None"], ["*", "All"], ...cats], true);   // All = every category
+  fill($("trophy"), [["*", "All"], ...cats], true);   // All = every category
 }
 // One boxed table, styled like the stats tables: a title row over the columns.
 // rows: [[first column, lines]]; lines[0] is the result, the rest the player(s) and team.
@@ -358,6 +356,75 @@ function trophyView(blocks) {
       Object.keys(b.divisions).filter((d) => !div || d === div).map((d) => [`${d} Division`, b.divisions[d]])))];
 }
 
+function trophyPage() {
+  const blocks = $("trophy").value === "*" ? news.trophies || []
+    : (news.trophies || []).filter((b) => b.category === $("trophy").value);
+  return blocks.length ? trophyView(blocks) : [el("p", { className: "empty" }, "No trophy darts in this newsletter.")];
+}
+
+// ---- Leader boards (Pg6-9), Hot Darts (Pg3), Predictions (Pg5) -----------------
+// A boxed table like the trophy darts: a title over the columns, then the rows (text cells).
+function boxTable(title, headers, rows, numeric = []) {
+  const top = el("tr"), sub = el("tr");
+  top.append(el("th", { className: "grp box", colSpan: headers.length }, title));
+  headers.forEach((h, i) => sub.append(el("th", { className: `${numeric.includes(i) ? "" : "name"} bl br` }, h)));
+  const tbody = el("tbody");
+  for (const r of rows) {
+    const tr = el("tr");
+    r.forEach((v, i) => tr.append(el("td", { className: `${numeric.includes(i) ? "" : "name"} bx bl br` }, v)));
+    tbody.append(tr);
+  }
+  const table = el("table", { className: "stats trophy" });
+  table.append(el("thead"), tbody);
+  table.tHead.append(top, sub);
+  const wrap = el("div", { className: "scroll" });
+  wrap.append(table);
+  return wrap;
+}
+const divisionsShown = (divs) => divs.filter((d) => !$("division").value || d === $("division").value).sort();
+const where = () => ($("division").value ? `${$("division").value} Division` : "All divisions");
+
+// The newsletter's lists, a table per division: rank (blank = tied with the one above),
+// player, team, and its three numbers. Win % and averages to 3 places, like everywhere else.
+function leadersView() {
+  const b = (news.leaders || []).find((x) => x.board === $("board").value);
+  if (!b) return [el("p", { className: "empty" }, "No leader boards in this newsletter.")];
+  const fmt = (v, col) => (typeof v === "number" && /%|Ave/.test(col) ? v.toFixed(3) : v ?? "");
+  return [el("h2", {}, `Leader board: ${b.board} — ${where()} ${b.note}`.trim()),
+    ...divisionsShown(Object.keys(b.divisions)).map((d) => {
+      let prev;
+      const rows = b.divisions[d].map((r) => {
+        const rank = r.rank === prev ? "" : r.rank ?? "";
+        prev = r.rank;
+        return [String(rank), r.name, r.team.replace(/^([A-H]\d+)\/\s*/, "$1 - "), ...r.stats.map((v, i) => String(fmt(v, b.columns[i])))];
+      });
+      return boxTable(`${d} Division`, ["#", "Player", "Team", ...b.columns], rows, [0, 3, 4, 5]);
+    })];
+}
+
+// Hot Darts: each division's list in the newsletter's order.
+function hotView() {
+  const hot = news.hot_darts || [];
+  if (!hot.length) return [el("p", { className: "empty" }, "No Hot Darts in this newsletter.")];
+  return [el("h2", {}, `Hot Darts — ${where()}`),
+    ...divisionsShown([...new Set(hot.map((h) => h.division))]).map((d) =>
+      boxTable(`${d} Division`, ["Player", "Team", "Hot dart"],
+        hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart])))];
+}
+
+// Predictions: the newsletter's paragraphs, each match's label ("Match #2:") in bold.
+function predictionsView() {
+  const ps = news.predictions || [];
+  if (!ps.length) return [el("p", { className: "empty" }, "No predictions in this newsletter.")];
+  return [el("h2", {}, "Predictions for the week"), ...ps.map((t) => {
+    const m = t.match(/^((?:Match(?:es)?\b[^:]*|[A-H] Division):)\s*(.*)$/);
+    const p = el("p", { className: "prediction" });
+    if (m) p.append(el("b", {}, m[1]), ` ${m[2]}`);
+    else p.textContent = t;
+    return p;
+  })];
+}
+
 // ---- RDL compare: teams and players added with + -------------------------------
 // Search row: Clear takes everything out of the comparison and goes back to the default view.
 // (A + on a search result, or on a Division view row, adds one.)
@@ -372,7 +439,7 @@ const allTeams = () => Object.keys(news?.divisions || {}).sort().flatMap((d) => 
 function compareView() {
   const parts = [];
   const section = (kind, list, found) => {
-    const head = el("h2", { className: "cmp-head" }, `Comparing ${found.length} ${kind}${found.length === 1 ? "" : "s"}`);
+    const head = el("h2", { className: "cmp-head" }, found.length ? found.map((r) => r.label).join(", ") : `No ${kind}s in this week`);
     const clear = el("button", { type: "button" }, "Clear");
     clear.onclick = () => { list.length = 0; render(); };
     head.append(clear);
@@ -466,7 +533,6 @@ function pickPlayer(t, p) {
 }
 function pickTeam(t) {
   pickSearch();
-  $("trophy").value = "";
   $("division").value = t.code[0];
   resetViewSorts();
   fillTeams();
@@ -477,7 +543,6 @@ function pickTeam(t) {
 // Back to the default view: the saved division and team, the search box empty.
 function resetView() {
   closeSearch();
-  $("trophy").value = "";
   $("division").value = homeDivision();
   resetViewSorts();
   $("team").value = "";
@@ -487,7 +552,6 @@ function resetView() {
   fillPlayers();
 }
 function showPlayer(t, p) {
-  $("trophy").value = "";
   $("division").value = t.code[0];
   fillTeams();
   $("team").value = t.code;
@@ -497,16 +561,25 @@ function showPlayer(t, p) {
 }
 
 // ---- wiring --------------------------------------------------------------
-const render = () => renderRDL();
+// Page (next to Week): Standings is the stats tables; the others are newsletter pages.
+// A control shows only on the pages in its data-pages.
+const PAGES = { standings: () => renderStandings(), predictions: () => show(predictionsView()),
+  trophy: () => show(trophyPage()), leaders: () => show(leadersView()), hot: () => show(hotView()) };
+const show = (parts) => out.replaceChildren(...parts);
+function render() {
+  const page = $("page").value;
+  document.querySelectorAll("[data-pages]").forEach((e) => (e.hidden = !e.dataset.pages.split(" ").includes(page)));
+  if (news) PAGES[page]();
+}
 
 $("newsletter").onchange = () => { saveView(); loadNewsletter(); };
 $("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 // Picking from the dropdowns replaces a searched-for player, so the box empties.
 $("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
-// Picking a team or player leaves Trophy darts; picking a category shows it.
-$("team").onchange = () => { saveView(); closeSearch(); $("trophy").value = ""; fillPlayers(); };
-$("player").onchange = () => { closeSearch(); $("trophy").value = ""; render(); };
-$("trophy").onchange = () => { closeSearch(); render(); };
+$("team").onchange = () => { saveView(); closeSearch(); fillPlayers(); };
+$("player").onchange = () => { closeSearch(); render(); };
+$("trophy").onchange = $("board").onchange = render;
+$("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
 // ? next to Clear opens and closes the how-comparing-works box (a tap, so it works on phones).
 $("cmp-help-toggle").onclick = () => {

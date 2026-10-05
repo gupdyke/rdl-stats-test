@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raleigh Dart League Stats (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261005145125">
+  <link rel="stylesheet" href="style.css?v=20261005153416">
 </head>
 <body>
   <header>
@@ -15,9 +15,9 @@
       <p><b>Comparing teams and players</b></p>
       <ul>
         <li><b>Add:</b> tap <b>+</b> next to a Search result, or <b>+</b> on a row in the table below.
-          A greyed <b>+</b> means it's already in the comparison.</li>
-        <li><b>Remove one:</b> tap <b>×</b> on its row in a Comparing table.</li>
-        <li><b>Remove all teams</b> or <b>all players:</b> the <b>Clear</b> next to "Comparing N teams" or "Comparing N players".</li>
+          Rows already in the comparison are highlighted, and their <b>+</b> is greyed.</li>
+        <li><b>Remove one:</b> tap <b>×</b> on its row in the comparison.</li>
+        <li><b>Remove all teams</b> or <b>all players:</b> the <b>Clear</b> next to the compared teams' or players' names.</li>
         <li><b>Remove everything:</b> the <b>Clear</b> next to Search. It also goes back to your saved division and team.</li>
         <li>The comparison stays when you change Season or Week. Anyone not in that week shows as a dashed
           "(not in this week)" tag; its <b>×</b> removes it.</li>
@@ -39,8 +39,16 @@
     <div class="row">
       <label>Season <select id="season"></select></label>
       <label>Week <select id="newsletter"></select></label>
+      <label>Page <select id="page">
+        <option value="standings">Standings</option>
+        <option value="predictions">Predictions</option>
+        <option value="trophy">Trophy Darts</option>
+        <option value="leaders">Leader Boards</option>
+        <option value="hot">Hot Darts</option>
+      </select></label>
     </div>
-    <div id="search-row" class="row">
+    <!-- data-pages: the pages a control shows on -->
+    <div id="search-row" class="row" data-pages="standings">
       <div class="search">
         <label for="search">Search</label>
         <input type="search" id="search" placeholder="Player or team…" autocomplete="off">
@@ -49,12 +57,13 @@
       <button id="view-reset" type="button" title="Take everything out of the comparison">Clear</button>
     </div>
     <div id="browse-controls" class="row">
-      <label>Division <select id="division"></select></label>
-      <label>Team <select id="team"></select></label>
-      <label>Player <select id="player"></select></label>
-      <label>Trophy darts <select id="trophy"></select></label>
+      <label data-pages="standings trophy leaders hot">Division <select id="division"></select></label>
+      <label data-pages="standings">Team <select id="team"></select></label>
+      <label data-pages="standings">Player <select id="player"></select></label>
+      <label data-pages="trophy">Category <select id="trophy"></select></label>
+      <label data-pages="leaders">Board <select id="board"></select></label>
     </div>
-    <fieldset class="groups">
+    <fieldset class="groups" data-pages="standings">
       <legend>Show</legend>
       <label><input type="checkbox" value="standings" checked> Standings</label>
       <label><input type="checkbox" value="singles" checked> Singles</label>
@@ -66,8 +75,8 @@
   </section>
 
   <main id="out"></main>
-  <footer class="stamp">Updated Oct 5, 2026 10:51 AM</footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261005145125";</script>
-  <script src="app.js?v=20261005145125"></script>
+  <footer class="stamp">Updated Oct 5, 2026 11:33 AM</footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261005153416";</script>
+  <script src="app.js?v=20261005153416"></script>
 </body>
 </html>

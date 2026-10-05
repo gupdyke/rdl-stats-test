@@ -1,11 +1,13 @@
 :root {
   --bg: #f7f7f5; --fg: #1d1d1b; --muted: #6b6b66; --line: #ddddd8;
   --panel: #ffffff; --accent: #b3261e; --stripe: #f1f1ee; --series: #2a78d6;
+  --pick: #fde3df;   /* a row that's in the comparison */
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #161615; --fg: #ececea; --muted: #9a9a94; --line: #33332f;
     --panel: #1f1f1d; --accent: #ef6b62; --stripe: #252523; --series: #3987e5;
+    --pick: #4a2724;
   }
 }
 * { box-sizing: border-box; }
@@ -103,3 +105,8 @@ table.stats:not(.trophy) tbody tr:nth-child(even) > :first-child { background: v
   th, td { padding: 4px 6px; }
   table.stats:not(.trophy) td.name { white-space: normal; width: 40vw; min-width: 8em; }
 }
+
+/* In the comparison: the row is tinted (the sticky name cell too) and its name is bold. */
+table.stats tbody tr.picked > td, table.stats:not(.trophy) tbody tr.picked > :first-child { background: var(--pick); }
+tr.picked td.name { font-weight: 600; }
+p.prediction { max-width: 70ch; margin: 0 0 12px; }   /* the newsletter's picks, one paragraph per match */
