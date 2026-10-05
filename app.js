@@ -378,7 +378,7 @@ function boxTable(title, headers, rows, { split = 1, numeric = [], lines = [], f
   const tbody = el("tbody");
   for (const r of rows) {
     const tr = el("tr");
-    r.forEach((v, i) => tr.append(el("td", { className: cls(i) }, v)));
+    r.forEach((v, i) => { const td = el("td", { className: cls(i) }); td.append(v); tr.append(td); });   // text or a link
     tbody.append(tr);
   }
   const table = el("table", { className: "stats plain" });
@@ -430,6 +430,78 @@ function hotView() {
     ...divisionsShown([...new Set(hot.map((h) => h.division))]).map((d) =>
       boxTable(`${d} Division`, ["Player", "Team", "Hot dart"],
         hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart]), { split: 2, key: `hot:${d}` }))];
+}
+
+// Schedule: who plays whom in the week picked in Week (next to Division; 1-14). It comes from
+// the season's grid in its Week 2 newsletter, or else that week's own newsletter (Pg5
+// "THIS WEEK'S MATCHES"). Each location links to the bar's address on Google Maps.
+const loaded = {};   // newsletter file -> its JSON (a promise), for the schedule's other weeks
+const fetchNews = (file) => (loaded[file] ??= getJSON(`/api/rdl?file=${encodeURIComponent(file)}`));
+const seasonFiles = () => catalog.rdl.filter((n) => seasonOf(n) === $("season").value);
+let schedFor = null;   // the newsletter the Week dropdown was last set from
+async function scheduleView() {
+  const grid = await (async () => {
+    const wk2 = seasonFiles().find((n) => n.week === 2);
+    return wk2 ? (await fetchNews(wk2.file)).season_schedule || [] : [];
+  })();
+  if (schedFor !== $("newsletter").value) {   // a new week picked up top: open its schedule
+    schedFor = $("newsletter").value;
+    const n = catalog.rdl.find((x) => x.file === schedFor);
+    fill($("schedweek"), Array.from({ length: 14 }, (_, i) => {
+      const g = grid.find((w) => w.week === i + 1);
+      return [String(i + 1), g?.date ? `Week ${i + 1} (${shortDate(g.date)})` : `Week ${i + 1}`];
+    }));
+    $("schedweek").value = String(n?.final ? 14 : n?.week || 1);
+  }
+  const week = +$("schedweek").value;
+  let s = grid.find((w) => w.week === week);
+  if (!s) {   // no grid: that week's own newsletter, if there is one
+    const n = seasonFiles().find((x) => x.week === week);
+    const own = n && (await fetchNews(n.file)).schedule;
+    if (own) s = { week, divisions: own.divisions };
+  }
+  if (!s) return [el("p", { className: "empty" }, `No schedule for week ${week} in this season's newsletters.`)];
+  const label = (code) => {
+    const t = allTeams().find((x) => x.code === code);
+    return t ? `${t.code} - ${t.name}` : code;   // a name that didn't match stays as printed
+  };
+  return [el("h2", {}, `Schedule — Week ${week}${s.date ? ` (${shortDate(s.date)})` : ""} — ${where()}`),
+    ...divisionsShown(Object.keys(s.divisions)).map((d) => {
+      const e = s.divisions[d];
+      const rows = [...e.matches.map((m) => [label(m.away), label(m.home),
+          m.unclear ? "Home team unclear in the newsletter" : locationCell(m.where)]),
+        ...e.byes.map((b) => [label(b), "Bye", ""])];
+      return boxTable(`${d} Division`, ["Away", "Home", "Location"], rows, { split: 2, key: `schedule:${d}` });
+    })];
+}
+const shortDate = (iso) => new Date(`${iso}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+// A location as printed ("Upper Deck 13+15"), with the bar's address under it as a Google
+// Maps link when it matches one of the newsletters' "WHERE WE PLAY" bars (catalog.venues).
+function locationCell(where) {
+  const v = venueFor(where);
+  if (!v) return where;
+  const cell = document.createDocumentFragment();
+  const a = el("a", { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${v.name}, ${v.street}, ${v.city.replace(/^(north|NW) /i, "")}, NC`)}`,
+    target: "_blank", rel: "noopener" }, `${v.street}, ${v.city}`);
+  cell.append(where, el("br"), a);
+  return cell;
+}
+// Like rdl.py's team-name match: shared words, where a short word ("Bros", "Cleve") may start
+// a longer one, ignoring board numbers ("13+15", "5&6"). Best match of at least half, else none.
+const placeWords = (s) => (s.toLowerCase().replace(/\d+\s*[+&]\s*\d+/g, " ").match(/[a-z0-9]+/g) || [])
+  .filter((w) => w.length > 1 && w !== "the");
+function venueFor(where) {
+  const ws = placeWords(where);
+  if (!ws.length) return null;
+  const close = (a, b) => a.startsWith(b) || b.startsWith(a) || (a.length > 4 && b.length > 4 && a.slice(0, 5) === b.slice(0, 5));
+  let best = null, score = 0;
+  for (const v of catalog.venues || []) {
+    const vs = placeWords(v.name);
+    const s = ws.filter((w) => vs.some((x) => close(w, x))).length / ws.length;
+    if (s > score) [best, score] = [v, s];
+  }
+  return score >= 0.5 ? best : null;
 }
 
 // Predictions, split by division: each division's match write-ups ("Match #2:  (F Div.) ...")
@@ -595,7 +667,8 @@ function showPlayer(t, p) {
 // Page (next to Week): Standings is the stats tables; the others are newsletter pages.
 // A control shows only on the pages in its data-pages.
 const PAGES = { standings: () => renderStandings(), predictions: () => show(predictionsView()),
-  trophy: () => show(trophyPage()), leaders: () => show(leadersView()), hot: () => show(hotView()) };
+  trophy: () => show(trophyPage()), leaders: () => show(leadersView()), hot: () => show(hotView()),
+  schedule: async () => { const parts = await scheduleView(); if ($("page").value === "schedule") show(parts); } };
 const show = (parts) => out.replaceChildren(...parts);
 function render() {
   const page = $("page").value;
@@ -609,7 +682,7 @@ $("season").onchange = () => { fillWeeks(); saveView(); loadNewsletter(); };
 $("division").onchange = () => { collapsed.clear(); closeSearch(); resetViewSorts(); fillTeams(); saveView(); };
 $("team").onchange = () => { collapsed.clear(); saveView(); closeSearch(); fillPlayers(); };
 $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
-$("trophy").onchange = $("board").onchange = render;
+$("trophy").onchange = $("board").onchange = $("schedweek").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
 // ? next to Clear opens and closes the how-comparing-works box (a tap, so it works on phones).
