@@ -70,3 +70,5 @@ button.cmp:hover { color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: default; }
 h1 .label { font-size: 13px; font-weight: 700; color: var(--panel); background: var(--accent); border-radius: 4px; padding: 2px 8px; vertical-align: middle; }   /* test site */
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */
+table.trophy td { vertical-align: top; }
+td.lines { white-space: pre-line; }   /* trophy darts: player and team on their own lines */

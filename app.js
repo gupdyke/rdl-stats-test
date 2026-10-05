@@ -175,6 +175,7 @@ async function loadNewsletter() {
   const divs = Object.keys(news.divisions).sort().map((d) => [d, `${d} Division`]);
   const first = !$("division").options.length;
   fill($("division"), [["", "All divisions"], ...divs], true);
+  fillTrophies();
   if (first) $("division").value = divs[0]?.[0] || "";
   fillTeams();
   if (prevName) followPlayer(prevName);
@@ -222,8 +223,11 @@ function renderRDL() {
   const owner = num && teams.find((t) => t.code === code);
   const p = owner && owner.players.find((p) => String(p.number) === num);
   const noPlayers = $("player").value === "none";   // Player: None = team rows only
+  const trophy = (news.trophies || []).find((b) => b.category === $("trophy").value);
   let view, more = [];   // more = the division's players list, hidden while comparing
-  if (p) {
+  if (trophy) {
+    view = trophyView(trophy);
+  } else if (p) {
     view = [el("h2", {}, `${p.name} — ${owner.code} - ${owner.name}`),
       statTable(withLabels([{ ...owner, players: [p] }]), { id: "main", nameHeader: "Player", name: (r) => r.label, addable: true })];
   } else if (team && noPlayers) {
@@ -254,6 +258,47 @@ function renderRDL() {
   const inComparison = p ? picked.players.includes(p.name) : team ? picked.teams.includes(team.code) : false;
   out.replaceChildren(...(inComparison ? [] : [...view, el("hr", { className: "cmp-end" })]), ...comparison);
   updateAddButton();
+}
+
+// ---- Trophy darts (Pg3): one category, every division or the one picked ------
+// Each division's entry is the lines from the newsletter: the result first, then the
+// player(s) and team. Lines split mid-thought are put back together: "Ton-12 (twice! -"
+// + "8/19/26 & 9/16/26)", and "Chuck Ginger &" + "Roy Lee Lindsey".
+function trophyLines(lines) {
+  const out = [];
+  for (const l of lines) {
+    const prev = out[out.length - 1];
+    const open = prev && (prev.split("(").length > prev.split(")").length || prev.endsWith("&") || l.startsWith("&"));
+    if (open) out[out.length - 1] = `${prev} ${l}`;
+    else out.push(l);
+  }
+  return out;
+}
+function fillTrophies() {
+  const cats = (news?.trophies || []).map((b) => [b.category, b.category]);
+  fill($("trophy"), [["", "None"], ...cats], true);
+}
+function trophyView(block) {
+  const div = $("division").value;
+  const divs = Object.keys(block.divisions).filter((d) => !div || d === div);
+  const head = el("tr");
+  for (const h of ["Division", "Result", "Player and team"]) head.append(el("th", { className: "name" }, h));
+  const tbody = el("tbody");
+  for (const d of divs) {
+    const [result = "", ...who] = trophyLines(block.divisions[d]);
+    const none = /^\(none reported\)$/i.test(result);
+    const tr = el("tr");
+    tr.append(el("td", { className: "name" }, `${d} Division`),
+      el("td", { className: "name" }, none ? "None reported" : result),
+      el("td", { className: "name lines" }, who.join("\n")));
+    tbody.append(tr);
+  }
+  const table = el("table", { className: "trophy" });
+  table.append(el("thead"), tbody);
+  table.tHead.append(head);
+  const wrap = el("div", { className: "scroll" });
+  wrap.append(table);
+  return [el("h2", {}, `Trophy darts: ${block.category} — ${div ? `${div} Division` : "All divisions"}`), wrap];
 }
 
 // ---- RDL compare: teams and players added with "Add to comparison" -----------
@@ -371,6 +416,7 @@ function pickPlayer(t, p) {
 function pickTeam(t) {
   closeSearch();
   $("team-search").value = `${t.code} - ${t.name}`;
+  $("trophy").value = "";
   $("division").value = t.code[0];
   resetViewSorts();
   fillTeams();
@@ -380,6 +426,7 @@ function pickTeam(t) {
 // Back to the default view: the first division with all teams and players, both boxes empty.
 function resetView() {
   closeSearch();
+  $("trophy").value = "";
   $("division").value = $("division").options[1]?.value || "";
   resetViewSorts();
   $("team").value = "";
@@ -388,6 +435,7 @@ function resetView() {
   render();
 }
 function showPlayer(t, p) {
+  $("trophy").value = "";
   $("division").value = t.code[0];
   fillTeams();
   $("team").value = t.code;
@@ -403,8 +451,10 @@ $("newsletter").onchange = loadNewsletter;
 $("season").onchange = () => { fillWeeks(); loadNewsletter(); };
 // Picking from the dropdowns replaces a searched-for player, so the box empties.
 $("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); };
-$("team").onchange = () => { closeSearch(); fillPlayers(); };
-$("player").onchange = () => { closeSearch(); render(); };
+// Picking a team or player leaves Trophy darts; picking a category shows it.
+$("team").onchange = () => { closeSearch(); $("trophy").value = ""; fillPlayers(); };
+$("player").onchange = () => { closeSearch(); $("trophy").value = ""; render(); };
+$("trophy").onchange = () => { closeSearch(); render(); };
 $("cmp-add").onclick = addPlayer;
 $("cmp-add-team").onclick = addTeam;
 $("view-reset").onclick = () => clearPicked(picked.players);
