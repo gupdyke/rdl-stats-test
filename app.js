@@ -95,9 +95,7 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable }) {
   const teamRows = nameHeader === "Team";
   const groups = [...[...document.querySelectorAll(".groups input:checked")].map((c) => GROUPS[c.value])
       .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) })),
-    ...(teamRows ? [STANDINGS] : []),
-    // A team's players table: the Team total row gets the team's match record (players' cells stay empty).
-    ...(!teamRows && total ? [{ ...STANDINGS, cols: STANDINGS.cols.filter((c) => c.k === "m_w") }] : [])];
+    ...(teamRows ? [STANDINGS] : [])];
   if (sort.key === NAME) {
     const cmp = nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b));
     rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
@@ -270,8 +268,9 @@ function renderRDL() {
   } else if (team && noPlayers) {
     view = [el("h2", {}, `${team.code} - ${team.name}`),
       statTable([teamRow(team)], { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true })];
-  } else if (team) {
-    view = [el("h2", {}, `${team.code} - ${team.name}`),
+  } else if (team) {   // its players: the heading carries the team's match record, "F7 - Nein Mark (3-3)"
+    const record = wl("m_w", "m_l")(team.totals);
+    view = [el("h2", {}, `${team.code} - ${team.name}${record && ` (${record})`}`),
       statTable(withLabels([team]), { id: "main", nameHeader: "Player", name: (r) => r.label, total: teamRow(team), addable: true })];
   } else if (!$("division").value && noPlayers) {
     view = [el("h2", {}, `All divisions — Team totals`),
