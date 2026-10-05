@@ -210,7 +210,7 @@ function homeDivision() {
 }
 
 // Season (from the file name: Sp23, Fa26, ...) then Week. The catalog comes
-// in chronological order, so seasons and weeks list oldest first.
+// in chronological order: weeks list oldest first, seasons newest first.
 const seasonOf = (n) => n.season || "Other";
 function fillWeeks() {
   const prevWeek = catalog.rdl.find((n) => n.file === $("newsletter").value)?.week;
@@ -728,7 +728,7 @@ groupBoxes.forEach((c) => (c.onchange = () => {
 (async () => {
   try { catalog = await getJSON("/api/catalog"); }
   catch (e) { return message(e.message, "error"); }
-  const seasons = [...new Set(catalog.rdl.map(seasonOf))];
+  const seasons = [...new Set(catalog.rdl.map(seasonOf))].reverse();   // newest season on top
   fill($("season"), seasons.map((x) => [x, x]));
   // Start on the saved week, or the latest when there's a newer one (or nothing saved).
   const latest = catalog.rdl[catalog.rdl.length - 1];
