@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raleigh Dart League Statistics (test)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Raleigh Dart League Statistics <span class="label">test</span></h1>
+  </header>
+
+  <section id="rdl-controls" class="controls">
+    <div class="row">
+      <label>Season <select id="season"></select></label>
+      <label>Week <select id="newsletter"></select></label>
+    </div>
+    <div id="search-row" class="row">
+      <div class="search">
+        <label for="player-search">Find player</label>
+        <input type="search" id="player-search" placeholder="Type a name…" autocomplete="off">
+        <ul id="player-results" class="results" hidden></ul>
+      </div>
+      <button id="cmp-add" type="button" disabled>Add to comparison</button>
+      <button id="view-reset" type="button" title="Take all players out of the comparison">Clear</button>
+    </div>
+    <div id="team-search-row" class="row">
+      <div class="search">
+        <label for="team-search">Find team</label>
+        <input type="search" id="team-search" placeholder="Type a team…" autocomplete="off">
+        <ul id="team-results" class="results" hidden></ul>
+      </div>
+      <button id="cmp-add-team" type="button" disabled>Add to comparison</button>
+      <button id="view-reset-team" type="button" title="Take all teams out of the comparison">Clear</button>
+    </div>
+    <div id="browse-controls" class="row">
+      <label>Division <select id="division"></select></label>
+      <label>Team <select id="team"></select></label>
+      <label>Player <select id="player"></select></label>
+    </div>
+    <fieldset class="groups">
+      <legend>Show</legend>
+      <label><input type="checkbox" value="singles" checked> Singles</label>
+      <label><input type="checkbox" value="doubles" checked> Doubles</label>
+      <label><input type="checkbox" value="overall" checked> Overall</label>
+      <label><input type="checkbox" value="allstar" checked> All-Star</label>
+      <label><input type="checkbox" value="tiebreak"> Tiebreakers</label>
+    </fieldset>
+  </section>
+
+  <main id="out"></main>
+  <footer class="stamp">Updated Oct 4, 2026 8:57 PM</footer>
+  <script>window.STATS_PUBLIC = true;</script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+const $ = (id) => document.getElementById(id);
+const out = $("out");
+let catalog = { rdl: [] };
+let news = null;          // parsed newsletter currently selected
+// Each table sorts on its own: table id -> { key, desc }. "main"/"more" are the
+// Division view's tables; the comparison tables have their own ids.
+const sorts = {};
+const resetViewSorts = () => { delete sorts.main; delete sorts.more; };
+const NAME = "__name";   // sort key for the Player/Team column (alphabetical)
+
+// ---- column groups -------------------------------------------------------
+const wl = (w, l) => (r) => (r[w] == null ? "" : `${r[w]}-${r[l]}`);
+const pct = (k) => (r) => (r[k] == null ? "---" : (+r[k]).toFixed(3));   // 0.600, like the newsletter
+const num = (k, d = 0) => (r) => (r[k] == null ? "" : (+r[k]).toFixed(d));
+const GROUPS = {
+  singles:  { title: "Singles", box: true, cols: [
+    { h: "301", f: wl("s301_w", "s301_l"), k: "s301_w" },
+    { h: "Win %", f: pct("s301_pct"), k: "s301_pct", team: true },
+    { h: "Cricket", f: wl("scr_w", "scr_l"), k: "scr_w" },
+    { h: "Win %", f: pct("scr_pct"), k: "scr_pct", team: true },
+    { h: "Record", f: wl("s_w", "s_l"), k: "s_w" },
+    { h: "Win %", f: pct("s_pct"), k: "s_pct" } ] },
+  doubles:  { title: "Doubles", box: true, cols: [
+    { h: "Cricket", f: wl("dcr_w", "dcr_l"), k: "dcr_w" },
+    { h: "Win %", f: pct("dcr_pct"), k: "dcr_pct", team: true },
+    { h: "501", f: wl("d501_w", "d501_l"), k: "d501_w" },
+    { h: "Win %", f: pct("d501_pct"), k: "d501_pct", team: true },
+    { h: "Record", f: wl("d_w", "d_l"), k: "d_w" },
+    { h: "Win %", f: pct("d_pct"), k: "d_pct" } ] },
+  overall:  { title: "Overall", box: true, cols: [
+    { h: "Record", f: wl("t_w", "t_l"), k: "t_w" },
+    { h: "Win %", f: pct("t_pct"), k: "t_pct" },
+    { h: "Matches", f: num("matches"), k: "matches" },
+    { h: "Games", f: num("gp"), k: "gp" } ] },
+  allstar:  { title: "All-Star", box: true, cols: [
+    { h: "Points", f: num("asp", 1), k: "asp" },
+    { h: "Avg", f: num("asp_avg", 3), k: "asp_avg" } ] },
+  tiebreak: { title: "Tiebreakers", cols: [
+    { h: "W-L", f: wl("tb_w", "tb_l"), k: "tb_w" } ] },
+};
+// Team rows end with the team's standings (match record and points, from Pg2),
+// always shown, as the last group. They have no matches-played count.
+// Columns marked team: true (win % per game type) show only for team rows.
+// Sorting by record breaks ties on standings points, as the league does.
+const STANDINGS = { title: "Standings", box: true, cols: [
+  { h: "Record", f: wl("m_w", "m_l"), k: "m_w", then: "m_pts" },
+  { h: "Points", f: num("m_pts"), k: "m_pts" } ] };
+
+const el = (tag, attrs = {}, text) => {
+  const e = Object.assign(document.createElement(tag), attrs);
+  if (text != null) e.textContent = text;
+  return e;
+};
+function fill(select, items, keepValue) {
+  const prev = select.value;
+  select.replaceChildren(...items.map(([v, t]) => el("option", { value: v }, t)));
+  if (keepValue && items.some(([v]) => v === prev)) select.value = prev;
+}
+// The public site (GitHub Pages, RDL only) has no server: it reads pre-built
+// JSON made by build_public.py instead of the API.
+const PUBLIC = window.STATS_PUBLIC === true;
+function publicURL(url) {
+  const u = new URL(url, location.origin);
+  if (u.pathname === "/api/catalog") return "data/catalog.json";
+  if (u.pathname === "/api/rdl") return `data/rdl/${u.searchParams.get("file").replace(/[^A-Za-z0-9._-]/g, "_")}.json`;
+  throw new Error("Not available on the public site.");
+}
+async function getJSON(url) {
+  const r = await fetch(PUBLIC ? publicURL(url) : url);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+function message(text, cls = "empty") { out.replaceChildren(el("p", { className: cls }, text)); }
+
+// ---- table ---------------------------------------------------------------
+// Boxed groups: left/right borders on a group's first and last columns.
+const edge = (g, c) => (!g.box ? "" : ["bx", c === g.cols[0] && "bl", c === g.cols[g.cols.length - 1] && "br"].filter(Boolean).join(" "));
+function statTable(rows, { id, nameHeader, name, total, removeFrom, addable }) {
+  const sort = sorts[id] || { key: null, desc: true };
+  const teamRows = nameHeader === "Team";
+  const groups = [...[...document.querySelectorAll(".groups input:checked")].map((c) => GROUPS[c.value])
+      .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) })),
+    ...(teamRows ? [STANDINGS] : [])];
+  if (sort.key === NAME) {
+    const cmp = nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b));
+    rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
+  } else if (sort.key) {
+    const then = groups.flatMap((g) => g.cols).find((c) => c.k === sort.key)?.then;
+    const diff = (a, b, k) => (a[k] ?? -1) - (b[k] ?? -1);
+    rows = [...rows].sort((a, b) => (diff(a, b, sort.key) || (then ? diff(a, b, then) : 0)) * (sort.desc ? -1 : 1));
+  }
+  const top = el("tr"), sub = el("tr");
+  top.append(el("th", { className: "grp box" }, ""));   // the name column is boxed too
+  const nameArrow = sort.key === NAME ? (sort.desc ? " ▼" : " ▲") : "";
+  const nameTh = el("th", { className: "name bl br", title: nameHeader === "Player" ? "Sort by player ID" : "Sort A-Z" }, nameHeader + nameArrow);
+  nameTh.onclick = () => { sorts[id] = { key: NAME, desc: sort.key === NAME ? !sort.desc : false }; render(); };
+  sub.append(nameTh);
+  for (const g of groups) {
+    top.append(el("th", { className: g.box ? "grp box" : "grp", colSpan: g.cols.length }, g.title));
+    for (const c of g.cols) {
+      const arrow = sort.key === c.k ? (sort.desc ? " ▼" : " ▲") : "";
+      const th = el("th", { title: "Sort", className: edge(g, c) }, c.h + arrow);
+      th.onclick = () => { sorts[id] = { key: c.k, desc: sort.key === c.k ? !sort.desc : true }; render(); };
+      sub.append(th);
+    }
+  }
+  const line = (r, label, cls) => {
+    const tr = el("tr", { className: cls || "" });
+    const td = el("td", { className: "name bx bl br" });
+    if (removeFrom) td.append(removeButton(removeFrom, r.key, r.label));   // comparison tables
+    else if (addable && r.key != null) td.append(addButton(r.kind === "team" ? picked.teams : picked.players, r.key, r.label));
+    td.append(label);
+    tr.append(td);
+    for (const g of groups) for (const c of g.cols) tr.append(el("td", { className: edge(g, c) }, c.f(r)));
+    return tr;
+  };
+  const tbody = el("tbody");
+  rows.forEach((r) => tbody.append(line(r, name(r))));
+  if (total) tbody.append(line(total, "Team total", "total"));
+  const table = el("table", { className: "stats" });
+  table.append(el("thead"), tbody);
+  table.tHead.append(top, sub);
+  const wrap = el("div", { className: "scroll" });
+  wrap.append(table);
+  return wrap;
+}
+
+// + on a row in the Division view puts that team or player straight into the comparison.
+function addButton(list, key, label) {
+  const added = list.includes(key);
+  const b = el("button", { type: "button", className: "cmp", disabled: added,
+    title: added ? "Already in the comparison" : "Add to comparison" }, "+");
+  b.setAttribute("aria-label", `Add ${label} to comparison`);
+  b.onclick = () => { list.push(key); render(); };
+  return b;
+}
+// × on a comparison row takes that team or player out of the comparison.
+function removeButton(list, key, label) {
+  const b = el("button", { type: "button", className: "cmp", title: "Remove from comparison" }, "×");
+  b.setAttribute("aria-label", `Remove ${label} from comparison`);
+  b.onclick = () => { list.splice(list.indexOf(key), 1); render(); };
+  return b;
+}
+
+// ---- RDL mode ------------------------------------------------------------
+// Division "" = All divisions (the whole league).
+const teamsOf = () => (!news ? [] : $("division").value ? news.divisions[$("division").value] || [] : allTeams());
+const playerKey = (t, p) => `${t.code}:${p.number}`;   // numbers repeat across divisions
+const playerLabel = (t, p) => `${p.name} (#${p.number}, ${t.code})`;
+// Player rows carry the team so the Player column can sort by ID: division, then number (A10 ... F74).
+const playerRow = (t, p) => ({ ...p, label: playerLabel(t, p), div: t.code[0], key: p.name, kind: "player" });
+const teamRow = (t) => ({ ...t.totals, label: `${t.code} - ${t.name}`, key: t.code, kind: "team" });
+const byPlayerId = (a, b) => a.div.localeCompare(b.div) || a.number - b.number;
+
+// Season (from the file name: Sp23, Fa26, ...) then Week. The catalog comes
+// in chronological order, so seasons and weeks list oldest first.
+const seasonOf = (n) => n.season || "Other";
+function fillWeeks() {
+  const prevWeek = catalog.rdl.find((n) => n.file === $("newsletter").value)?.week;
+  const weeks = catalog.rdl.filter((n) => seasonOf(n) === $("season").value);
+  fill($("newsletter"), weeks.map((n) => [n.file,
+    n.final ? "End of season" : n.week != null ? `Week ${n.week}` : n.file]));
+  const same = weeks.find((n) => n.week != null && n.week === prevWeek);   // keep the week across seasons
+  $("newsletter").value = same ? same.file : weeks[weeks.length - 1]?.file || "";
+}
+
+async function loadNewsletter() {
+  const prevName = selectedPlayer()?.p.name;   // follow the person by name, not team/number
+  news = null;
+  if (!$("newsletter").value) return message("No RDL newsletters in the data folder yet.");
+  message("Loading…");
+  try { news = await getJSON(`/api/rdl?file=${encodeURIComponent($("newsletter").value)}`); }
+  catch (e) { return message(e.message, "error"); }
+  const divs = Object.keys(news.divisions).sort().map((d) => [d, `${d} Division`]);
+  const first = !$("division").options.length;
+  fill($("division"), [["", "All divisions"], ...divs], true);
+  if (first) $("division").value = divs[0]?.[0] || "";
+  fillTeams();
+  if (prevName) followPlayer(prevName);
+}
+
+// The Browse player as {t, p}, or null.
+function selectedPlayer() {
+  if (!news || !$("player").value) return null;
+  const [code, num] = $("player").value.split(":");
+  const t = allTeams().find((t) => t.code === code);
+  const p = t?.players.find((p) => String(p.number) === num);
+  return p ? { t, p } : null;
+}
+// After a season/week change: select the same person wherever they are now.
+// Team codes and numbers change between seasons, so match on the name.
+function followPlayer(name) {
+  const hit = allTeams().flatMap((t) => t.players.map((p) => ({ t, p }))).find(({ p }) => p.name === name);
+  if (hit) return showPlayer(hit.t, hit.p);
+  $("team").value = "";
+  fillPlayers();
+  $("player").value = "none";
+  render();
+  out.prepend(el("p", { className: "empty" },
+    `${name} isn't in ${$("season").value} ${$("newsletter").selectedOptions[0]?.text || ""}.`));
+}
+function fillTeams() {
+  fill($("team"), [["", "All teams"], ...teamsOf().map((t) => [t.code, `${t.code} - ${t.name}`])], true);
+  fillPlayers();
+}
+function fillPlayers() {
+  const teams = $("team").value ? teamsOf().filter((t) => t.code === $("team").value) : teamsOf();
+  const players = teams.flatMap((t) => t.players.map((p) => [playerKey(t, p), playerLabel(t, p)]))
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  const first = !$("player").options.length;
+  fill($("player"), [["none", "None"], ["", "All players"], ...players], !first);   // None (no player rows) is the default
+  render();
+}
+
+function renderRDL() {
+  if (!news) return;
+  const teams = teamsOf();
+  const team = teams.find((t) => t.code === $("team").value);
+  const withLabels = (ts) => ts.flatMap((t) => t.players.map((p) => playerRow(t, p)));
+  const [code, num] = $("player").value.split(":");
+  const owner = num && teams.find((t) => t.code === code);
+  const p = owner && owner.players.find((p) => String(p.number) === num);
+  const noPlayers = $("player").value === "none";   // Player: None = team rows only
+  let view, more = [];   // more = the division's players list, hidden while comparing
+  if (p) {
+    view = [el("h2", {}, `${p.name} — ${owner.code} - ${owner.name}`),
+      statTable(withLabels([{ ...owner, players: [p] }]), { id: "main", nameHeader: "Player", name: (r) => r.label, addable: true })];
+  } else if (team && noPlayers) {
+    view = [el("h2", {}, `${team.code} - ${team.name}`),
+      statTable([teamRow(team)], { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true })];
+  } else if (team) {
+    view = [el("h2", {}, `${team.code} - ${team.name}`),
+      statTable(withLabels([team]), { id: "main", nameHeader: "Player", name: (r) => r.label, total: teamRow(team), addable: true })];
+  } else if (!$("division").value && noPlayers) {
+    view = [el("h2", {}, `All divisions — Team totals`),
+      statTable(teams.map(teamRow), { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true })];
+  } else if (!$("division").value) {
+    const rows = withLabels(teams);
+    view = [el("h2", {}, `All divisions — ${rows.length} players`),
+      statTable(rows, { id: "main", nameHeader: "Player", name: (r) => r.label, addable: true })];
+  } else {
+    const players = withLabels(teams);
+    view = [el("h2", {}, `${$("division").value} Division — Team totals`),
+      statTable(teams.map(teamRow), { id: "main", nameHeader: "Team", name: (r) => r.label, addable: true })];
+    if (!noPlayers) more = [el("h2", {}, `${$("division").value} Division — ${players.length} players`),
+      statTable(players, { id: "more", nameHeader: "Player", name: (r) => r.label, addable: true })];
+  }
+  // While comparing: the table being picked from stays put, the comparison goes right below it,
+  // and the division's long players list is left out. A team or player picked in the dropdowns
+  // that's already in the comparison isn't shown twice.
+  const comparison = compareView();
+  if (!comparison.length) return out.replaceChildren(...view, ...more), updateAddButton();
+  const inComparison = p ? picked.players.includes(p.name) : team ? picked.teams.includes(team.code) : false;
+  out.replaceChildren(...(inComparison ? [] : [...view, el("hr", { className: "cmp-end" })]), ...comparison);
+  updateAddButton();
+}
+
+// ---- RDL compare: teams and players added with "Add to comparison" -----------
+// Find player row: Add puts the selected player in the comparison, Clear takes all players out.
+// Find team row: the same for teams. Both Clears also go back to the default view.
+function addPlayer() {
+  const sp = selectedPlayer();
+  if (sp && !picked.players.includes(sp.p.name)) picked.players.push(sp.p.name);
+  render();
+}
+function addTeam() {
+  const code = $("team").value;
+  if (code && !picked.teams.includes(code)) picked.teams.push(code);
+  render();
+}
+function clearPicked(list) {
+  list.length = 0;
+  resetView();
+}
+function updateAddButton() {
+  const sp = selectedPlayer(), code = $("team").value;
+  $("cmp-add").disabled = !sp || picked.players.includes(sp.p.name);
+  $("cmp-add-team").disabled = !code || picked.teams.includes(code);
+}
+// Teams are keyed by code, players by name (so they carry across seasons and weeks).
+const picked = { teams: [], players: [] };   // keys, in the order added
+const allTeams = () => Object.keys(news?.divisions || {}).sort().flatMap((d) => news.divisions[d]);
+
+function compareView() {
+  const parts = [];
+  const section = (kind, list, found) => {
+    const head = el("h2", { className: "cmp-head" }, `Comparing ${found.length} ${kind}${found.length === 1 ? "" : "s"}`);
+    const clear = el("button", { type: "button" }, "Clear");
+    clear.onclick = () => { list.length = 0; render(); };
+    head.append(clear);
+    parts.push(head);
+    const missing = list.filter((k) => !found.some((r) => r.key === k));
+    if (missing.length) {   // added in another week, not in this one
+      const chips = el("div", { className: "chips" });
+      chips.append(...missing.map((k) => {
+        const chip = el("span", { className: "chip missing" }, `${k} (not in this week)`);
+        const x = el("button", { type: "button", title: "Remove" }, "×");
+        x.onclick = () => { list.splice(list.indexOf(k), 1); render(); };
+        chip.append(x);
+        return chip;
+      }));
+      parts.push(chips);
+    }
+  };
+  if (picked.teams.length) {
+    const ts = picked.teams.map((k) => allTeams().find((t) => t.code === k)).filter(Boolean);
+    section("team", picked.teams, ts.map(teamRow));
+    if (ts.length) {
+      // All the compared teams' players in one table, so they sort against each other.
+      const players = ts.flatMap((t) => t.players.map((p) => playerRow(t, p)));
+      const names = ts.map((t) => `${t.code} - ${t.name}`);
+      const which = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+      parts.push(statTable(ts.map(teamRow), { id: "cmp-teams", nameHeader: "Team", name: (r) => r.label, removeFrom: picked.teams }),
+        el("h2", {}, `Players on ${which} — ${players.length}`),
+        statTable(players, { id: "cmp-team-players", nameHeader: "Player", name: (r) => r.label }));
+    }
+  }
+  if (picked.players.length) {
+    const all = allTeams().flatMap((t) => t.players.map((p) => playerRow(t, p)));
+    const ps = picked.players.map((k) => all.find((r) => r.key === k)).filter(Boolean);
+    section("player", picked.players, ps);
+    if (ps.length) parts.push(statTable(ps, { id: "cmp-players", nameHeader: "Player", name: (r) => r.label, removeFrom: picked.players }));
+  }
+  return parts;
+}
+
+// ---- RDL search: Find player / Find team, any part of a name, either order --
+// Each hit is {label, pick}. Picking jumps there; the box keeps the name until Clear.
+const words = (q) => q.toLowerCase().split(/[\s,]+/).filter(Boolean);
+function searchPlayers(q) {
+  const ws = words(q);
+  if (!ws.length || !news) return [];
+  return allTeams().flatMap((t) => t.players.map((p) => ({ t, p })))
+    .filter(({ p }) => ws.every((w) => p.name.toLowerCase().includes(w)))
+    .sort((a, b) => a.p.name.localeCompare(b.p.name))
+    .slice(0, 30)
+    .map(({ t, p }) => ({ label: playerLabel(t, p), pick: () => pickPlayer(t, p) }));
+}
+function searchTeams(q) {   // matches the ID or the name: "f7", "nein", "dart"
+  const ws = words(q);
+  if (!ws.length || !news) return [];
+  return allTeams().map((t) => ({ label: `${t.code} - ${t.name}`, pick: () => pickTeam(t) }))
+    .filter((h) => ws.every((w) => h.label.toLowerCase().includes(w)))
+    .slice(0, 30);
+}
+const SEARCHES = [
+  { input: "player-search", results: "player-results", hits: searchPlayers, none: "No players found" },
+  { input: "team-search", results: "team-results", hits: searchTeams, none: "No teams found" },
+];
+function renderSearch(s) {
+  const q = $(s.input).value, hits = s.hits(q), ul = $(s.results);
+  ul.replaceChildren(...hits.map((h) => {
+    const b = el("button", { type: "button" }, h.label);
+    b.onmousedown = (e) => { e.preventDefault(); h.pick(); };   // before the input's blur
+    const li = el("li");
+    li.append(b);
+    return li;
+  }));
+  if (!hits.length && q.trim()) ul.append(el("li", { className: "none" }, s.none));
+  ul.hidden = !ul.children.length;
+}
+function closeSearch() {
+  for (const s of SEARCHES) { $(s.input).value = ""; $(s.results).hidden = true; }
+}
+function pickPlayer(t, p) {
+  closeSearch();
+  $("player-search").value = p.name;
+  showPlayer(t, p);
+}
+function pickTeam(t) {
+  closeSearch();
+  $("team-search").value = `${t.code} - ${t.name}`;
+  $("division").value = t.code[0];
+  resetViewSorts();
+  fillTeams();
+  $("team").value = t.code;
+  fillPlayers();
+}
+// Back to the default view: the first division with all teams and players, both boxes empty.
+function resetView() {
+  closeSearch();
+  $("division").value = $("division").options[1]?.value || "";
+  resetViewSorts();
+  $("team").value = "";
+  fillTeams();
+  $("player").value = "none";
+  render();
+}
+function showPlayer(t, p) {
+  $("division").value = t.code[0];
+  fillTeams();
+  $("team").value = t.code;
+  fillPlayers();
+  $("player").value = playerKey(t, p);
+  render();
+}
+
+// ---- wiring --------------------------------------------------------------
+const render = () => renderRDL();
+
+$("newsletter").onchange = loadNewsletter;
+$("season").onchange = () => { fillWeeks(); loadNewsletter(); };
+// Picking from the dropdowns replaces a searched-for player, so the box empties.
+$("division").onchange = () => { closeSearch(); resetViewSorts(); fillTeams(); };
+$("team").onchange = () => { closeSearch(); fillPlayers(); };
+$("player").onchange = () => { closeSearch(); render(); };
+$("cmp-add").onclick = addPlayer;
+$("cmp-add-team").onclick = addTeam;
+$("view-reset").onclick = () => clearPicked(picked.players);
+$("view-reset-team").onclick = () => clearPicked(picked.teams);
+for (const s of SEARCHES) {
+  $(s.input).oninput = $(s.input).onfocus = () => renderSearch(s);
+  $(s.input).onkeydown = (e) => {
+    if (e.key === "Escape") closeSearch();
+    if (e.key === "Enter") s.hits(e.target.value)[0]?.pick();
+  };
+  $(s.input).onblur = () => { $(s.results).hidden = true; };
+}
+document.querySelectorAll(".groups input").forEach((c) => (c.onchange = render));
+
+(async () => {
+  try { catalog = await getJSON("/api/catalog"); }
+  catch (e) { return message(e.message, "error"); }
+  const seasons = [...new Set(catalog.rdl.map(seasonOf))];
+  fill($("season"), seasons.map((x) => [x, x]));
+  $("season").value = seasons[seasons.length - 1] || "";   // start on the latest season and week
+  fillWeeks();
+  loadNewsletter();
+})();
