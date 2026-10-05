@@ -162,14 +162,16 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
 }
 
 // + on a row in the Division view puts that team or player straight into the comparison.
+// Once it's in, the + turns into a − that takes it back out.
 function addButton(list, key, label) {
   const added = list.includes(key);
-  const b = el("button", { type: "button", className: "cmp", disabled: added,
-    title: added ? "Already in the comparison" : "Add to comparison" }, "+");
-  b.setAttribute("aria-label", `Add ${label} to comparison`);
-  b.onclick = () => { list.push(key); render(); };
+  const b = el("button", { type: "button", className: added ? "cmp in" : "cmp",
+    title: added ? "Remove from comparison" : "Add to comparison" }, added ? "−" : "+");
+  b.setAttribute("aria-label", `${added ? "Remove" : "Add"} ${label} ${added ? "from" : "to"} comparison`);
+  b.onclick = () => { toggle(list, key); render(); };
   return b;
 }
+const toggle = (list, key) => (list.includes(key) ? list.splice(list.indexOf(key), 1) : list.push(key));
 // × on a comparison row takes that team or player out of the comparison.
 function removeButton(list, key, label) {
   const b = el("button", { type: "button", className: "cmp", title: "Remove from comparison" }, "×");
@@ -532,7 +534,7 @@ function renderSearch() {
   const item = (h) => {
     const add = addButton(h.list, h.key, h.label);
     add.onclick = null;
-    add.onmousedown = (e) => { e.preventDefault(); h.list.push(h.key); pickSearch(); render(); };   // before the input's blur
+    add.onmousedown = (e) => { e.preventDefault(); toggle(h.list, h.key); pickSearch(); render(); };   // before the input's blur
     const b = el("button", { type: "button" }, h.label);
     b.onmousedown = (e) => { e.preventDefault(); h.pick(); };
     const li = el("li", { className: "hit" });

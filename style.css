@@ -1,13 +1,15 @@
 :root {
   --bg: #f7f7f5; --fg: #1d1d1b; --muted: #6b6b66; --line: #ddddd8;
   --panel: #ffffff; --accent: #b3261e; --stripe: #f1f1ee; --series: #2a78d6;
-  --pick: #fde3df;   /* a row that's in the comparison */
+  --pick: #dcf2e0;   /* a row that's in the comparison (green) */
+  --pick-fg: #1e7a3a;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #161615; --fg: #ececea; --muted: #9a9a94; --line: #33332f;
     --panel: #1f1f1d; --accent: #ef6b62; --stripe: #252523; --series: #3987e5;
-    --pick: #4a2724;
+    --pick: #1f3d27;
+    --pick-fg: #6fd08c;
   }
 }
 * { box-sizing: border-box; }
@@ -126,3 +128,4 @@ table.plain .rank { width: 2.6em; min-width: 2.6em; max-width: 2.6em; }   /* lea
 table.plain .frz1 { left: 2.6em; box-shadow: inset -2px 0 var(--muted); }   /* # already draws the line between them */
 table.plain .frz + :not(.frz) { border-left: 0; }   /* the frozen column draws that line */
 th.corner button.collapse { font-size: 12px; font-weight: 600; padding: 1px 8px; }   /* Collapse / Expand, top-left of the table picked from */
+button.cmp.in { color: var(--pick-fg); border-color: var(--pick-fg); font-weight: 700; }   /* − : in the comparison */
