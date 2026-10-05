@@ -476,35 +476,51 @@ async function scheduleView() {
 }
 const shortDate = (iso) => new Date(`${iso}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-// A location as printed ("Upper Deck 13+15"), with the bar's address under it as a Google
-// Maps link when it matches one of the newsletters' "WHERE WE PLAY" bars (catalog.venues).
-// Current season only (Jerry): past seasons' bars may have moved or closed, so they stay plain text.
+// A location as printed ("Upper Deck 13+15"), with the bar's address under it as a Google Maps
+// link, ONLY for the locations Jerry approved for that season (PLACES). Anything else (a past
+// season, a new or misspelled location) stays plain text: a wrong link costs credibility, so
+// nothing is guessed. To add a season or a bar, get Jerry's OK on the exact location and address.
+// Keys: the location as printed in the season's schedule grid, lowercase, board numbers dropped.
+const PLACES = {
+  Fa26: {   // approved 2026-10-05; addresses from the Sp26 banquet "WHERE WE PLAY" list unless noted
+    "american legion fv": ["American Legion Fuquay-Varina", "6400 Johnson Pond Road, Fuquay-Varina"],
+    "backstage pub": ["Backstage Pub", "401 Ashville Avenue, Cary"],
+    "benny's billiards": ["Benny's Billiards", "932 NE Maynard Road, Cary"],
+    "brass tap": ["Brass Tap & Billiards", "3316 Capital Boulevard, Raleigh"],
+    "break time billiards": ["Break Time Billiards", "6442 Tryon Road, Cary"],
+    "buffalo bros. capital blvd.": ["Buffalo Brothers - Capital Blvd", "3111 Capital Blvd, Raleigh"],
+    "cleveland dh garner": ["Cleveland Draft House - Garner", "6101 NC Highway 42 West, Garner"],
+    "d's bottle shop": ["D's Bottle Shop", "13200 Falls of Neuse Rd, Suite 115, Raleigh"],
+    "dugout tavern": ["Dugout Tavern", "1413 Kelly Road, Apex"],
+    "high park": ["High Park Bar & Grille", "625 E. Whitaker Mill Road, Raleigh"],
+    "hot shots": ["Hot Shots Billiards & Pub", "107 Edinburgh South Drive, Cary"],
+    "lonerider wake forest": ["Lonerider Wake Forest", "1839 South Main Street, Suite 600, Wake Forest"],
+    "mac's tavern": ["Mac's Tavern", "1014 Ryan Road, Cary"],
+    "mackey's pub": ["Mackey's Pub", "2101 South Main Street, Wake Forest"],
+    "main street taps": ["Main Street Taps", "Holly Springs"],   // Jerry: Two Time's bar; no street known
+    "main street tavern": ["Main Street Tavern", "411 South Main Street, Rolesville"],
+    "mulligans arcade": ["Mulligans Arcade and Tavern", "176 Bratton Drive, Garner"],
+    "natural science": ["Natural Science", "2409 Crabtree Boulevard, Raleigh"],
+    "pickled onion #2": ["The Pickled Onion #2", "8511 Cantilever Way, Raleigh"],
+    "rally point sport grill": ["Rally Point Sport Grill", "1837 N. Harrison Ave., Cary"],
+    "scooters": ["Scooters Bar & Grill", "1911 Sego Ct, Raleigh, NC 27616"],   // Jerry
+    "sharky's place": ["Sharky's Place", "5800 Duraleigh Road, Raleigh"],
+    "snooker's": ["Snooker's", "3520 Wade Avenue, Raleigh"],
+    "taproom knightdate": ["The Taproom - Knightdale", "861 Old Knight Rd, Suite 104, Knightdale"],   // sic
+    "the flying saucer": ["The Flying Saucer", "328 West Morgan Street, Raleigh"],
+    "upper deck": ["The Upper Deck", "329 N. Harrison Avenue, Cary"],
+  },
+};
+const placeKey = (where) => where.toLowerCase().replace(/\d+\s*[+&]\s*\d+/g, " ").replace(/\s+/g, " ").trim();
 function locationCell(where) {
-  const current = seasonOf(catalog.rdl[catalog.rdl.length - 1] || {});
-  const v = $("season").value === current ? venueFor(where) : null;
-  if (!v) return where;
+  const hit = PLACES[$("season").value]?.[placeKey(where)];
+  if (!hit) return where;
+  const [name, address] = hit;
+  const a = el("a", { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${address}${/\bNC\b/.test(address) ? "" : ", NC"}`)}`,
+    target: "_blank", rel: "noopener" }, address);
   const cell = document.createDocumentFragment();
-  const place = [v.name, v.street, v.city.replace(/^(north|NW) /i, ""), "NC"].filter(Boolean).join(", ");
-  const a = el("a", { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`,
-    target: "_blank", rel: "noopener" }, [v.street, v.city].filter(Boolean).join(", "));   // no street: just the city
   cell.append(where, el("br"), a);
   return cell;
-}
-// Like rdl.py's team-name match: shared words, where a short word ("Bros", "Cleve") may start
-// a longer one, ignoring board numbers ("13+15", "5&6"). Best match of at least half, else none.
-const placeWords = (s) => (s.toLowerCase().replace(/\d+\s*[+&]\s*\d+/g, " ").match(/[a-z0-9]+/g) || [])
-  .filter((w) => w.length > 1 && w !== "the");
-function venueFor(where) {
-  const ws = placeWords(where);
-  if (!ws.length) return null;
-  const close = (a, b) => a.startsWith(b) || b.startsWith(a) || (a.length > 4 && b.length > 4 && a.slice(0, 5) === b.slice(0, 5));
-  let best = null, score = 0;
-  for (const v of catalog.venues || []) {
-    const vs = placeWords(v.name);
-    const s = ws.filter((w) => vs.some((x) => close(w, x))).length / ws.length;
-    if (s > score) [best, score] = [v, s];
-  }
-  return score >= 0.5 ? best : null;
 }
 
 // Predictions, split by division: each division's match write-ups ("Match #2:  (F Div.) ...")
