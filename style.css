@@ -3,6 +3,7 @@
   --panel: #ffffff; --accent: #b3261e; --stripe: #f1f1ee; --series: #2a78d6;
   --pick: #dcf2e0;   /* a row that's in the comparison (green) */
   --pick-fg: #1e7a3a;
+  --link: #1a5fb4;   /* links, e.g. the TONs link in the ? box (the browser's default blue is unreadable in dark mode) */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -10,10 +11,12 @@
     --panel: #1f1f1d; --accent: #ef6b62; --stripe: #252523; --series: #3987e5;
     --pick: #1f3d27;
     --pick-fg: #6fd08c;
+    --link: #8ab4f8;
   }
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+a, a:visited { color: var(--link); }
 body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
        font: 15px/1.4 system-ui, sans-serif; }
 header { display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
