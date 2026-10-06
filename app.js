@@ -23,16 +23,16 @@ const num = (k, d = 0) => (r) => (r[k] == null ? "" : (+r[k]).toFixed(d));
 const GROUPS = {
   singles:  { title: "Singles", box: true, cols: [
     { h: "301", f: wl("s301_w", "s301_l"), k: "s301_w" },
-    { h: "Win %", f: pct("s301_pct"), k: "s301_pct", team: true },
+    { h: "Win %", f: pct("s301_pct"), k: "s301_pct" },
     { h: "Cricket", f: wl("scr_w", "scr_l"), k: "scr_w" },
-    { h: "Win %", f: pct("scr_pct"), k: "scr_pct", team: true },
+    { h: "Win %", f: pct("scr_pct"), k: "scr_pct" },
     { h: "Record", f: wl("s_w", "s_l"), k: "s_w" },
     { h: "Win %", f: pct("s_pct"), k: "s_pct" } ] },
   doubles:  { title: "Doubles", box: true, cols: [
     { h: "Cricket", f: wl("dcr_w", "dcr_l"), k: "dcr_w" },
-    { h: "Win %", f: pct("dcr_pct"), k: "dcr_pct", team: true },
+    { h: "Win %", f: pct("dcr_pct"), k: "dcr_pct" },
     { h: "501", f: wl("d501_w", "d501_l"), k: "d501_w" },
-    { h: "Win %", f: pct("d501_pct"), k: "d501_pct", team: true },
+    { h: "Win %", f: pct("d501_pct"), k: "d501_pct" },
     { h: "Record", f: wl("d_w", "d_l"), k: "d_w" },
     { h: "Win %", f: pct("d_pct"), k: "d_pct" } ] },
   overall:  { title: "Overall", box: true, cols: [
@@ -48,7 +48,6 @@ const GROUPS = {
 };
 // Team rows end with the team's standings (match record and points, from Pg2),
 // always shown, as the first group (right after the name). They have no matches-played count.
-// Columns marked team: true (win % per game type) show only for team rows.
 // Sorting by record breaks ties on standings points, as the league does.
 const STANDINGS = { title: "Standings", box: true, cols: [
   { h: "Record", f: wl("m_w", "m_l"), k: "m_w", then: "m_pts" },
@@ -105,7 +104,7 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
   const shown = [...document.querySelectorAll(".groups input:checked")].map((c) => c.value);
   const groups = [...(teamRows && shown.includes("standings") ? [STANDINGS] : []),   // Standings: team rows only
     ...shown.filter((v) => GROUPS[v]).map((v) => GROUPS[v])
-      .map((g) => ({ ...g, cols: g.cols.filter((c) => (teamRows ? c.k !== "matches" : !c.team)) }))];
+      .map((g) => ({ ...g, cols: g.cols.filter((c) => !teamRows || c.k !== "matches") }))];
   // The default sort only applies while its column is showing (no standings order with Standings off).
   const shownDefault = defaultSort && groups.some((g) => g.cols.some((c) => c.k === defaultSort.key)) ? defaultSort : null;
   const sort = sorts[id] || shownDefault || { key: null, desc: true };
