@@ -4,46 +4,55 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RDL Newsletter Reader (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261007164332">
+  <link rel="stylesheet" href="style.css?v=20261007170048">
 </head>
 <body>
   <header>
     <h1>RDL Newsletter Reader <span class="label">test</span></h1>
     <button id="cmp-help-toggle" class="help" type="button" title="How comparing and sorting work"
             aria-label="How comparing and sorting work" aria-haspopup="dialog" aria-controls="cmp-help">?</button>
-    <dialog id="cmp-help" class="help-box" aria-label="Help"><div class="help-body">
-      <button type="button" class="help-x" data-close aria-label="Close help">&times;</button>
-      <p class="tons-title"><b>PLEASE KEEP READING THE TONs</b></p>
-      <p>This page is a quick way to scan each week's TONs newsletter, it is not meant to replace it. The TONs
-        has far more information than you'll find here, and if this is all you use, you'll miss most of it.
-        Jason Kilts spends a lot of time putting the TONs together every week, and you still need to read it.
-        Check it out: <a href="https://raleighdartleague.org/newsletter/" target="_blank" rel="noopener">raleighdartleague.org/newsletter</a></p>
-      <p class="next"><b>Comparing teams and players</b></p>
-      <ul>
-        <li><b>Add:</b> tap <b>+</b> next to a Search result, or <b>+</b> on a row in the table below.
-          Rows already in the comparison are highlighted in green, and their <b>+</b> turns into a <b>−</b>:
-          tap <b>−</b> to take it back out.</li>
-        <li><b>Remove one:</b> tap <b>×</b> on its row in the comparison.</li>
-        <li><b>Remove all teams</b> or <b>all players:</b> the <b>Clear</b> next to the compared teams' or players' names.</li>
-        <li><b>Remove everything:</b> <b>Reset</b> (next to Search) clears ALL current comparisons, every team and
-          player at once, and goes back to your saved division and team.</li>
-        <li>The comparison stays when you change Season or Week. Anyone not in that week shows as a dashed
-          "(not in this week)" tag; its <b>×</b> removes it.</li>
-        <li><b>Collapse</b> (top-left of every table) shrinks that table to its top row, e.g. the table you
-          pick from so the comparison is easier to see; <b>Expand</b> brings it back. Picking something new
-          expands them all.</li>
-      </ul>
-      <p class="next"><b>Sorting</b></p>
-      <ul>
-        <li>Tap a column heading to sort by it, highest first. Tap it again to flip the order.
-          <b>▼</b> or <b>▲</b> marks the column the table is sorted by; the faint <b>⇅</b> marks the others you can sort by.</li>
-        <li><b>Team</b> sorts A-Z; <b>Player</b> sorts by player ID (division, then number).</li>
-        <li>Team totals start in standings order: best <b>Record</b> first, ties broken by <b>Points</b>
-          (while Standings is checked).</li>
-        <li>Each table sorts on its own. Changing Division, or <b>Reset</b>, puts the
-          table back in its starting order.</li>
-      </ul>
-      <div class="help-foot"><button type="button" data-close>Close</button></div>
+    <dialog id="cmp-help" class="popup" aria-labelledby="help-title" aria-describedby="help-desc"><div class="popup-body">
+      <button type="button" class="popup-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <div class="popup-head">
+        <h2 id="help-title">Help</h2>
+        <p id="help-desc">About this page, comparing and sorting.</p>
+      </div>
+      <div class="popup-section">
+        <h3>PLEASE KEEP READING THE TONs</h3>
+        <p>This page is a quick way to scan each week's TONs newsletter, it is not meant to replace it. The TONs
+          has far more information than you'll find here, and if this is all you use, you'll miss most of it.
+          Jason Kilts spends a lot of time putting the TONs together every week, and you still need to read it.
+          Check it out: <a href="https://raleighdartleague.org/newsletter/" target="_blank" rel="noopener">raleighdartleague.org/newsletter</a></p>
+      </div>
+      <div class="popup-section">
+        <h3>Comparing teams and players</h3>
+        <ul>
+          <li><b>Add:</b> tap <b>+</b> next to a Search result, or <b>+</b> on a row in the table below.
+            Rows already in the comparison are highlighted in green, and their <b>+</b> turns into a <b>−</b>:
+            tap <b>−</b> to take it back out.</li>
+          <li><b>Remove one:</b> tap <b>×</b> on its row in the comparison.</li>
+          <li><b>Remove all teams</b> or <b>all players:</b> the <b>Clear</b> next to the compared teams' or players' names.</li>
+          <li><b>Remove everything:</b> <b>Reset</b> (next to Search) clears ALL current comparisons, every team and
+            player at once, and goes back to your saved division and team.</li>
+          <li>The comparison stays when you change Season or Week. Anyone not in that week shows as a dashed
+            "(not in this week)" tag; its <b>×</b> removes it.</li>
+          <li><b>Collapse</b> (top-left of every table) shrinks that table to its top row, e.g. the table you
+            pick from so the comparison is easier to see; <b>Expand</b> brings it back. Picking something new
+            expands them all.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Sorting</h3>
+        <ul>
+          <li>Tap a column heading to sort by it, highest first. Tap it again to flip the order.
+            <b>▼</b> or <b>▲</b> marks the column the table is sorted by; the faint <b>⇅</b> marks the others you can sort by.</li>
+          <li><b>Team</b> sorts A-Z; <b>Player</b> sorts by player ID (division, then number).</li>
+          <li>Team totals start in standings order: best <b>Record</b> first, ties broken by <b>Points</b>
+            (while Standings is checked).</li>
+          <li>Each table sorts on its own. Changing Division, or <b>Reset</b>, puts the
+            table back in its starting order.</li>
+        </ul>
+      </div>
     </div></dialog>
   </header>
 
@@ -94,8 +103,8 @@
   </section>
 
   <main id="out"></main>
-  <footer class="stamp">Updated Oct 7, 2026 12:42 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261007164332";</script>
-  <script src="app.js?v=20261007164332"></script>
+  <footer class="stamp">Updated Oct 7, 2026 12:59 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261007170048";</script>
+  <script src="app.js?v=20261007170048"></script>
 </body>
 </html>

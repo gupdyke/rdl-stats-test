@@ -750,7 +750,7 @@ $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 $("trophy").onchange = $("board").onchange = $("schedweek").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
-// The ? (top right) opens Help as a popup; ×, Close, Esc or a tap outside it closes it.
+// The ? (top right) opens Help as a popup; ×, Esc or a tap outside it closes it.
 $("cmp-help-toggle").onclick = () => $("cmp-help").showModal();
 document.querySelectorAll("#cmp-help [data-close]").forEach((b) => { b.onclick = () => $("cmp-help").close(); });
 $("cmp-help").onclick = (e) => { if (e.target === $("cmp-help")) $("cmp-help").close(); };
