@@ -750,12 +750,10 @@ $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 $("trophy").onchange = $("board").onchange = $("schedweek").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
-// ? next to Clear opens and closes the how-comparing-works box (a tap, so it works on phones).
-$("cmp-help-toggle").onclick = () => {
-  const box = $("cmp-help");
-  box.hidden = !box.hidden;
-  $("cmp-help-toggle").setAttribute("aria-expanded", String(!box.hidden));
-};
+// The ? (top right) opens Help as a popup; ×, Close, Esc or a tap outside it closes it.
+$("cmp-help-toggle").onclick = () => $("cmp-help").showModal();
+document.querySelectorAll("#cmp-help [data-close]").forEach((b) => { b.onclick = () => $("cmp-help").close(); });
+$("cmp-help").onclick = (e) => { if (e.target === $("cmp-help")) $("cmp-help").close(); };
 $("search").oninput = $("search").onfocus = renderSearch;
 $("search").onkeydown = (e) => {
   if (e.key === "Escape") closeSearch();

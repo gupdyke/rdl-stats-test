@@ -83,9 +83,14 @@ button.cmp:hover { color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: default; }
 h1 .label { font-size: 13px; font-weight: 700; color: var(--panel); background: var(--accent); border-radius: 4px; padding: 2px 8px; vertical-align: middle; }   /* test site */
 button.help { width: 26px; height: 26px; padding: 0; border-radius: 50%; font-weight: 700; color: var(--muted); margin-left: auto; flex: none; }   /* top right */
-button.help[aria-expanded="true"] { color: var(--panel); background: var(--muted); }
-.help-box { width: 100%; padding: 8px 12px; font-size: 14px; background: var(--bg);
-            border: 1px solid var(--line); border-radius: 6px; }   /* how comparing works */
+/* The ? opens Help as a popup (dialog) over the page */
+.help-box { width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto;
+            padding: 0; font-size: 14px; color: var(--fg); background: var(--panel);
+            border: 1px solid var(--line); border-radius: 8px; }
+.help-box::backdrop { background: rgb(0 0 0 / .45); }
+.help-body { padding: 12px 16px; }   /* a tap on the dialog itself (outside this) closes it */
+.help-x { float: right; border: 0; background: none; color: var(--muted); font-size: 24px; line-height: 1; padding: 0 2px; margin: -4px -6px 0 8px; }
+.help-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
 .help-box p { margin: 0 0 4px; }
 th .arrow.idle { opacity: .45; font-weight: 400; }   /* sortable, not sorted by */
 .help-box p.next { margin-top: 10px; }   /* Sorting, after Comparing */
