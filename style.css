@@ -23,6 +23,9 @@ a, a:visited { color: var(--link); }
 body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
        font: 15px/1.4 system-ui, sans-serif; }
 header { display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
+/* The title row and the controls box stop at 860px, like the RDL Scoresheets page, so the ? sits near
+   the controls on a wide screen; the stats tables below still use the full width */
+header, .controls { max-width: 860px; }
 h1 { margin: 0; font-size: 22px; }
 h2 { font-size: 17px; margin: 24px 0 8px; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
@@ -106,6 +109,7 @@ button.help { width: 26px; height: 26px; padding: 0; border-radius: 50%; font-we
 .popup-section p { margin: 0 0 4px; }
 .popup-section ol, .popup-section ul { margin: 0; padding-left: 20px; }
 .popup-section li + li { margin-top: 4px; }
+#license-text p { margin: 0 0 12px; }   /* paragraphs spaced as in Self Checkout's License popup */
 th .arrow.idle { opacity: .45; font-weight: 400; }   /* sortable, not sorted by */
 hr.cmp-end { border: 0; border-top: 2px solid var(--line); margin: 28px 0 0; }   /* between the table being picked from and the comparison */
 table.plain td { vertical-align: top; }
