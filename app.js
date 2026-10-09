@@ -726,10 +726,19 @@ function alignNames() {
     s.style.width = `${Math.ceil(Math.max(...lines.map((l) => l.width)))}px`;
   });
 }
+// The title row and controls box stop at 860px (style.css), but on Stats, when the Show boxes
+// make the tables wider than that, they widen to the widest table so the box's border (and the ?)
+// line up with them.
+function fitControls() {
+  const widest = $("page").value === "standings"
+    ? Math.max(0, ...[...$("out").querySelectorAll("table.stats")].map((t) => t.offsetWidth)) : 0;
+  for (const e of [document.querySelector("header"), $("rdl-controls")])
+    e.style.maxWidth = widest > 860 ? `${widest}px` : "";
+}
 // Again whenever the tables change (any view, sort, collapse) or the phone turns.
 let aligning = 0;
 const alignSoon = () => { cancelAnimationFrame(aligning); aligning = requestAnimationFrame(() => {
-  namesSeen.disconnect(); alignNames(); namesSeen.observe($("out"), { childList: true, subtree: true }); }); };
+  namesSeen.disconnect(); alignNames(); fitControls(); namesSeen.observe($("out"), { childList: true, subtree: true }); }); };
 const namesSeen = new MutationObserver(alignSoon);
 namesSeen.observe($("out"), { childList: true, subtree: true });
 PHONE.addEventListener("change", alignSoon);
