@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RDL Newsletter Reader (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261009035455">
+  <link rel="stylesheet" href="style.css?v=20261009194230">
 </head>
 <body>
   <header>
@@ -42,6 +42,18 @@
         </ul>
       </div>
       <div class="popup-section">
+        <h3>Career</h3>
+        <ul>
+          <li>View <b>Career</b> shows every season a player played, back to Sp96, from each season's final
+            standings (the current season so far), with a <b>Career</b> total at the bottom.</li>
+          <li>Search a player under <b>Player</b>; each one you pick adds a table, so you can compare careers.
+            <b>×</b> takes one away, <b>Clear</b> takes them all.</li>
+          <li>The newsletters spelled some names differently over the years (Jerry / Gerald). Names that look
+            like the same person count as one career; Jr. and Sr. are kept apart.</li>
+          <li>A division's numbers aren't the same as another's: each row shows the team, and its division letter.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
         <h3>Sorting</h3>
         <ul>
           <li>Tap a column heading to sort by it, highest first. Tap it again to flip the order.
@@ -72,6 +84,7 @@
         <option value="trophy">Trophy Darts</option>
         <option value="leaders">Leader Boards</option>
         <option value="schedule">Schedule</option>
+        <option value="career">Career</option>
       </select></label>
     </div>
     <!-- data-pages: the pages a control shows on -->
@@ -96,7 +109,15 @@
       </div>
       <button id="view-reset" type="button" title="Take ALL teams and players out of the comparison">Reset</button>
     </div>
-    <fieldset class="groups" data-pages="standings">
+    <div id="career-row" class="row" data-pages="career">
+      <div class="search">
+        <label for="career-search">Player</label>
+        <input type="search" id="career-search" placeholder="Search every season…" autocomplete="off">
+        <ul id="career-results" class="results" hidden></ul>
+      </div>
+      <button id="career-clear" type="button" title="Take every player off the Career view">Clear</button>
+    </div>
+    <fieldset class="groups" data-pages="standings career">
       <legend>Show</legend>   <!-- remembered in this browser for the next visit -->
       <label><input type="checkbox" value="standings" checked> Standings</label>
       <label><input type="checkbox" value="singles" checked> Singles</label>
@@ -108,8 +129,8 @@
   </section>
 
   <main id="out"></main>
-  <footer class="stamp">Updated Oct 8, 2026 11:53 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261009035455";</script>
-  <script src="app.js?v=20261009035455"></script>
+  <footer class="stamp">Updated Oct 9, 2026 3:41 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261009194230";</script>
+  <script src="app.js?v=20261009194230"></script>
 </body>
 </html>

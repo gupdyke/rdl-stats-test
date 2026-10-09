@@ -71,6 +71,7 @@ const PUBLIC = window.STATS_PUBLIC === true;
 function publicURL(url) {
   const u = new URL(url, location.origin);
   if (u.pathname === "/api/catalog") return "data/catalog.json";
+  if (u.pathname === "/api/careers") return "data/careers.json";
   if (u.pathname === "/api/rdl") return `data/rdl/${u.searchParams.get("file").replace(/[^A-Za-z0-9._-]/g, "_")}.json`;
   throw new Error("Not available on the public site.");
 }
@@ -99,7 +100,7 @@ function message(text, cls = "empty") { out.replaceChildren(el("p", { className:
 // ---- table ---------------------------------------------------------------
 // Boxed groups: left/right borders on a group's first and last columns.
 const edge = (g, c) => (!g.box ? "" : ["bx", c === g.cols[0] && "bl", c === g.cols[g.cols.length - 1] && "br"].filter(Boolean).join(" "));
-function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, defaultSort }) {
+function statTable(rows, { id, nameHeader, name, total, totalLabel = "Team total", removeFrom, addable, defaultSort, byName }) {
   const teamRows = nameHeader === "Team";
   const shown = [...document.querySelectorAll(".groups input:checked")].map((c) => c.value);
   const groups = [...(teamRows && shown.includes("standings") ? [STANDINGS] : []),   // Standings: team rows only
@@ -109,7 +110,7 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
   const shownDefault = defaultSort && groups.some((g) => g.cols.some((c) => c.k === defaultSort.key)) ? defaultSort : null;
   const sort = sorts[id] || shownDefault || { key: null, desc: true };
   if (sort.key === NAME) {
-    const cmp = nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b));
+    const cmp = byName || (nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b)));
     rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
   } else if (sort.key) {
     const then = groups.flatMap((g) => g.cols).find((c) => c.k === sort.key)?.then;
@@ -126,7 +127,8 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
   const corner = el("th", { className: "grp box corner" });   // the name column is boxed too
   corner.append(collapseButton(id));
   top.append(corner);
-  const nameTh = Object.assign(heading(nameHeader, NAME), { className: "name bl br", title: nameHeader === "Player" ? "Sort by player ID" : "Sort A-Z" });
+  const nameTh = Object.assign(heading(nameHeader, NAME), { className: "name bl br",
+    title: byName ? "Sort by date" : nameHeader === "Player" ? "Sort by player ID" : "Sort A-Z" });
   nameTh.onclick = () => { sorts[id] = { key: NAME, desc: sort.key === NAME ? !sort.desc : false }; render(); };
   sub.append(nameTh);
   for (const g of groups) {
@@ -152,7 +154,7 @@ function statTable(rows, { id, nameHeader, name, total, removeFrom, addable, def
   };
   const tbody = el("tbody");
   rows.forEach((r) => tbody.append(line(r, name(r))));
-  if (total) tbody.append(line(total, "Team total", "total"));
+  if (total) tbody.append(line(total, totalLabel, "total"));
   const table = el("table", { className: "stats" });
   table.append(el("thead"));
   if (collapsed.has(id)) table.tHead.append(top);   // just the group headings and Expand
@@ -599,6 +601,88 @@ function compareView() {
   return parts;
 }
 
+// ---- Career: every season a player played --------------------------------------
+// From each season's final standings (careers.py), back to Sp96. Names the newsletters
+// spelled differently over the years (Jerry / Gerald) are one career. One table per player
+// picked, a row per season (oldest first) and a Career total; the Show boxes pick the columns.
+let careerData = null;      // {seasons, cols, players: [[name, [other names], rows]]}, loaded on first use
+const careerPicks = [];     // names (as careers.json lists them), in the order added
+const careerOf = (name) => careerData?.players.find((p) => p[0] === name || p[1].includes(name));
+async function loadCareers() {
+  return (careerData ??= await getJSON("/api/careers"));
+}
+const SUMS = ["s301_w", "s301_l", "scr_w", "scr_l", "s_w", "s_l", "dcr_w", "dcr_l", "d501_w", "d501_l",
+  "d_w", "d_l", "t_w", "t_l", "tb_w", "tb_l", "asp", "gp", "matches"];
+const ratio = (w, l) => (w == null || l == null || !(w + l) ? null : w / (w + l));
+function withPcts(r) {   // the per-game Win % (rdl._game_pcts), which careers.json leaves out
+  for (const g of ["s301", "scr", "dcr", "d501"]) r[`${g}_pct`] = ratio(r[`${g}_w`], r[`${g}_l`]);
+  return r;
+}
+function careerTotal(rows) {   // a number missing in some seasons (older columns) adds up the rest
+  const t = {};
+  for (const k of SUMS) {
+    const vs = rows.map((r) => r[k]).filter((v) => typeof v === "number");
+    t[k] = vs.length ? vs.reduce((a, b) => a + b, 0) : null;
+  }
+  for (const g of ["s", "d", "t"]) t[`${g}_pct`] = ratio(t[`${g}_w`], t[`${g}_l`]);
+  t.asp_avg = t.gp ? t.asp / t.gp : null;
+  return withPcts(t);
+}
+function careerTable([name, aka, rows]) {
+  const rs = rows.map(([season, code, team, number, ...vals], order) => withPcts({   // rows come oldest first
+    ...Object.fromEntries(careerData.cols.map((c, i) => [c, vals[i]])), label: `${season} ${code} - ${team}`, order }));
+  const seasons = [...new Set(rows.map((r) => r[0]))];
+  const head = el("h2", { className: "cmp-head" },
+    `${name} — ${seasons.length} season${seasons.length > 1 ? "s" : ""}, ${seasons[0]}${seasons.length > 1 ? ` to ${seasons[seasons.length - 1]}` : ""}`);
+  const x = removeButton(careerPicks, name, name);
+  x.onclick = () => { careerPicks.splice(careerPicks.indexOf(name), 1); render(); };
+  head.prepend(x);
+  return [head, ...(aka.length ? [el("p", { className: "aka" }, `Also listed as ${aka.join("; ")}`)] : []),
+    statTable(rs, { id: `career:${name}`, nameHeader: "Season", name: (r) => r.label, total: careerTotal(rs),
+      totalLabel: "Career", byName: (a, b) => a.order - b.order })];
+}
+async function careerView() {
+  message("Loading every season…");
+  try { await loadCareers(); } catch (e) { return [el("p", { className: "error" }, e.message)]; }
+  // Opening Career with no one picked: the player picked on Stats, or the players compared there.
+  if (!careerPicks.length) {
+    const from = [selectedPlayer()?.p.name, ...picked.players].filter(Boolean);
+    for (const n of from) { const c = careerOf(n); if (c && !careerPicks.includes(c[0])) careerPicks.push(c[0]); }
+  }
+  const cs = careerPicks.map(careerOf).filter(Boolean);
+  if (!cs.length) return [el("p", { className: "empty" },
+    `Search for a player above to see every season they played, ${careerData.seasons[0]} to ${careerData.seasons[careerData.seasons.length - 1]}. Add more players to compare careers.`)];
+  return cs.flatMap(careerTable);
+}
+function searchCareers(q) {   // any part of a name, or a name they used to be listed under
+  const ws = words(q);
+  if (!ws.length || !careerData) return [];
+  return careerData.players.filter(([n, aka]) => [n, ...aka].some((x) => ws.every((w) => x.toLowerCase().includes(w))))
+    .slice(0, 30);
+}
+function renderCareerSearch() {
+  const ul = $("career-results"), q = $("career-search").value;
+  const hits = searchCareers(q);
+  ul.replaceChildren(...hits.map(([n, aka, rows]) => {
+    const seasons = new Set(rows.map((r) => r[0])).size;
+    const b = el("button", { type: "button" }, `${n} (${rows[0][0]}${seasons > 1 ? ` to ${rows[rows.length - 1][0]}` : ""}, ${seasons} season${seasons > 1 ? "s" : ""})`);
+    b.onmousedown = (e) => { e.preventDefault(); pickCareer(n); };
+    const li = el("li", { className: "hit" });
+    li.append(b);
+    return li;
+  }));
+  if (!hits.length && q.trim()) ul.append(el("li", { className: "none" }, careerData ? "No players found" : "Loading…"));
+  ul.hidden = !ul.children.length;
+}
+function pickCareer(name) {
+  $("career-search").value = "";
+  $("career-results").hidden = true;
+  $("career-search").blur();
+  collapsed.clear();
+  if (!careerPicks.includes(name)) careerPicks.push(name);
+  render();
+}
+
 // ---- RDL search: players and teams, any part of a name, either order ---------
 // Each hit is {label, pick, list, key}. Picking jumps there; its + adds it to the comparison
 // (list, key). Either empties the box.
@@ -688,7 +772,8 @@ function showPlayer(t, p) {
 // A control shows only on the pages in its data-pages.
 const PAGES = { standings: () => renderStandings(), predictions: () => show(predictionsView()),
   trophy: () => show(trophyPage()), leaders: () => show(leadersView()), hot: () => show(hotView()),
-  schedule: async () => { const parts = await scheduleView(); if ($("page").value === "schedule") show(parts); } };
+  schedule: async () => { const parts = await scheduleView(); if ($("page").value === "schedule") show(parts); },
+  career: async () => { const parts = await careerView(); if ($("page").value === "career") show(parts); } };
 const show = (parts) => out.replaceChildren(...parts);
 // On a phone a long team or player name wraps: its first line stays on the left and every
 // line after it goes on the right, and the name's box is as wide as its widest line, so the
@@ -730,7 +815,7 @@ function alignNames() {
 // make the tables wider than that, they widen to the widest table so the box's border (and the ?)
 // line up with them.
 function fitControls() {
-  const widest = $("page").value === "standings"
+  const widest = ["standings", "career"].includes($("page").value)
     ? Math.max(0, ...[...$("out").querySelectorAll("table.stats")].map((t) => t.offsetWidth)) : 0;
   for (const e of [document.querySelector("header"), $("rdl-controls")])
     e.style.maxWidth = widest > 860 ? `${widest}px` : "";
@@ -790,6 +875,13 @@ $("search").onkeydown = (e) => {
   if (e.key === "Enter") searchHits(e.target.value)[0]?.pick();
 };
 $("search").onblur = () => { $("search-results").hidden = true; };
+$("career-search").oninput = $("career-search").onfocus = () => { loadCareers().then(renderCareerSearch, () => {}); renderCareerSearch(); };
+$("career-search").onkeydown = (e) => {
+  if (e.key === "Escape") { e.target.value = ""; $("career-results").hidden = true; }
+  if (e.key === "Enter") { const hit = searchCareers(e.target.value)[0]; if (hit) pickCareer(hit[0]); }
+};
+$("career-search").onblur = () => { $("career-results").hidden = true; };
+$("career-clear").onclick = () => { careerPicks.length = 0; collapsed.clear(); render(); };
 // The Show checkboxes are remembered in this browser, so the next visit opens with the same columns.
 const groupBoxes = document.querySelectorAll(".groups input");
 if (Array.isArray(saved.groups)) groupBoxes.forEach((c) => (c.checked = saved.groups.includes(c.value)));

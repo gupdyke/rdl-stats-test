@@ -83,6 +83,7 @@ button.cmp { padding: 0 6px; margin-right: 8px; font-size: 14px; line-height: 18
 button.cmp:hover { color: var(--accent); }
 .cmp-head { display: flex; align-items: center; gap: 12px; }
 .cmp-head button { font-size: 13px; font-weight: 400; }
+.aka { margin: -4px 0 8px; font-size: 14px; color: var(--muted); }   /* Career: the other names a player was listed under */
 button:disabled { opacity: 0.5; cursor: default; }
 h1 .label { font-size: 13px; font-weight: 700; color: var(--panel); background: var(--accent); border-radius: 4px; padding: 2px 8px; vertical-align: middle; }   /* test site */
 button.help { width: 26px; height: 26px; padding: 0; border-radius: 50%; font-weight: 700; color: var(--muted); margin-left: auto; flex: none; }   /* top right */
