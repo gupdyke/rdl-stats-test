@@ -48,11 +48,13 @@ const GROUPS = {
 };
 // Team rows end with the team's standings (match record and points, from Pg2),
 // always shown, as the first group (right after the name). They have no matches-played count.
-// Sorting by record breaks ties on standings points, as the league does.
+// Record sorts by win percentage, as the league's standings do (Jerry: 4-3 Down to F above 4-4
+// Nein Mark; a bye means teams have played different numbers of matches), ties on standings points.
+const winPct = (r) => (r.m_w + r.m_l ? r.m_w / (r.m_w + r.m_l) : -1);
 const STANDINGS = { title: "Standings", box: true, cols: [
-  { h: "Record", f: wl("m_w", "m_l"), k: "m_w", then: "m_pts" },
+  { h: "Record", f: wl("m_w", "m_l"), k: "m_w", by: winPct, then: "m_pts" },
   { h: "Points", f: num("m_pts"), k: "m_pts" } ] };
-// Team totals start in standings order: best record first, ties on points.
+// Team totals start in standings order: best win percentage first, ties on points.
 const BY_STANDINGS = { key: "m_w", desc: true };
 
 const el = (tag, attrs = {}, text) => {
@@ -100,7 +102,7 @@ function message(text, cls = "empty") { out.replaceChildren(el("p", { className:
 // ---- table ---------------------------------------------------------------
 // Boxed groups: left/right borders on a group's first and last columns.
 const edge = (g, c) => (!g.box ? "" : ["bx", c === g.cols[0] && "bl", c === g.cols[g.cols.length - 1] && "br"].filter(Boolean).join(" "));
-function statTable(rows, { id, nameHeader, name, total, totalLabel = "Team total", removeFrom, addable, defaultSort, byName }) {
+function statTable(rows, { id, nameHeader, name, total, totalLabel = "Team total", removeFrom, addable, defaultSort, byName, shade }) {
   const teamRows = nameHeader === "Team";
   const shown = [...document.querySelectorAll(".groups input:checked")].map((c) => c.value);
   const groups = [...(teamRows && shown.includes("standings") ? [STANDINGS] : []),   // Standings: team rows only
@@ -113,9 +115,10 @@ function statTable(rows, { id, nameHeader, name, total, totalLabel = "Team total
     const cmp = byName || (nameHeader === "Player" ? byPlayerId : (a, b) => name(a).localeCompare(name(b)));
     rows = [...rows].sort((a, b) => cmp(a, b) * (sort.desc ? -1 : 1));
   } else if (sort.key) {
-    const then = groups.flatMap((g) => g.cols).find((c) => c.k === sort.key)?.then;
+    const col = groups.flatMap((g) => g.cols).find((c) => c.k === sort.key);
     const diff = (a, b, k) => (a[k] ?? -1) - (b[k] ?? -1);
-    rows = [...rows].sort((a, b) => (diff(a, b, sort.key) || (then ? diff(a, b, then) : 0)) * (sort.desc ? -1 : 1));
+    const first = col?.by ? (a, b) => col.by(a) - col.by(b) : (a, b) => diff(a, b, sort.key);   // e.g. Record: win %
+    rows = [...rows].sort((a, b) => (first(a, b) || (col?.then ? diff(a, b, col.then) : 0)) * (sort.desc ? -1 : 1));
   }
   const top = el("tr"), sub = el("tr");
   // Every sortable heading shows an arrow: ▼/▲ on the column the table is sorted by, a faint ⇅ on the rest.
@@ -141,7 +144,9 @@ function statTable(rows, { id, nameHeader, name, total, totalLabel = "Team total
   }
   const line = (r, label, cls) => {
     const inCmp = addable && r.key != null && (r.kind === "team" ? picked.teams : picked.players).includes(r.key);
-    const tr = el("tr", { className: [cls, inCmp && "picked"].filter(Boolean).join(" ") });   // in the comparison: highlighted
+    // in the comparison: highlighted green; shade(r): a compared team's tint number (0 = none)
+    const tint = shade?.(r);
+    const tr = el("tr", { className: [cls, tint && `shade shade-${tint}`, inCmp && "picked"].filter(Boolean).join(" ") });
     const td = el("td", { className: "name bx bl br" });
     // The name sits in a box of its own: on a phone, where it wraps, its second line lines up on the right (style.css).
     const box = td.appendChild(el("div", { className: "namebox" }));
@@ -583,13 +588,19 @@ function compareView() {
     const ts = picked.teams.map((k) => allTeams().find((t) => t.code === k)).filter(Boolean);
     section("team", picked.teams, ts.map(teamRow));
     if (ts.length) {
-      // All the compared teams' players in one table, so they sort against each other.
-      const players = ts.flatMap((t) => t.players.map((p) => playerRow(t, p)));
+      // All the compared teams' players in one table, so they sort against each other. Each team after
+      // the first has its own tint (blue, amber, purple, teal, pink, then round again), on its players
+      // and its row in the teams table, so the teams stand apart (Jerry, 2026-10-10)
+      const players = ts.flatMap((t) => t.players.map((p) => ({ ...playerRow(t, p), team: t.code })));
+      const tintOf = (code) => { const i = ts.findIndex((t) => t.code === code); return i > 0 ? ((i - 1) % 5) + 1 : 0; };
       const names = ts.map((t) => `${t.code} - ${t.name}`);
       const which = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
-      parts.push(statTable(ts.map(teamRow), { id: "cmp-teams", nameHeader: "Team", name: (r) => r.label, removeFrom: picked.teams }),
+      // The teams' rows are tinted the same way as their players (Jerry)
+      parts.push(statTable(ts.map(teamRow), { id: "cmp-teams", nameHeader: "Team", name: (r) => r.label, removeFrom: picked.teams,
+          shade: (r) => tintOf(r.key) }),
         el("h2", {}, `Players on ${which} — ${players.length}`),
-        statTable(players, { id: "cmp-team-players", nameHeader: "Player", name: (r) => r.label, addable: true }));   // + adds a player too
+        statTable(players, { id: "cmp-team-players", nameHeader: "Player", name: (r) => r.label, addable: true,   // + adds a player too
+          shade: (r) => tintOf(r.team) }));
     }
   }
   if (picked.players.length) {

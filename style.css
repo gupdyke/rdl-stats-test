@@ -3,6 +3,10 @@
   --panel: #ffffff; --accent: #b3261e; --stripe: #f1f1ee; --series: #2a78d6;
   --pick: #dcf2e0;   /* a row that's in the comparison (green) */
   --pick-fg: #1e7a3a;
+  /* compared teams' tints (2nd team on: blue, amber, purple, teal, pink), each with its even rows */
+  --shade-1: #e6eefa; --shade-1s: #dbe6f6; --shade-2: #fbf1dc; --shade-2s: #f5e7c7;
+  --shade-3: #efe7f8; --shade-3s: #e5daf3; --shade-4: #e0f3f2; --shade-4s: #d1ecea;
+  --shade-5: #f9e6ee; --shade-5s: #f3d8e4;
   --link: #1a5fb4;   /* links, e.g. the TONs link in the ? box (the browser's default blue is unreadable in dark mode) */
 }
 @media (prefers-color-scheme: dark) {
@@ -11,6 +15,9 @@
     --panel: #1f1f1d; --accent: #ef6b62; --stripe: #252523; --series: #3987e5;
     --pick: #1f3d27;
     --pick-fg: #6fd08c;
+    --shade-1: #1d2633; --shade-1s: #222c3a; --shade-2: #332b1a; --shade-2s: #3a311e;
+    --shade-3: #2a2236; --shade-3s: #30273d; --shade-4: #18302f; --shade-4s: #1c3736;
+    --shade-5: #33202a; --shade-5s: #3a2530;
     --link: #8ab4f8;
   }
 }
@@ -149,6 +156,16 @@ table.stats:not(.plain) tbody tr:nth-child(even) > :first-child { background: va
 }
 
 /* In the comparison: the row is tinted (the sticky name cell too) and its name is bold. */
+table.stats tbody tr.shade-1 > td, table.stats:not(.plain) tbody tr.shade-1 > :first-child { background: var(--shade-1); }
+table.stats tbody tr.shade-1:nth-child(even) > td, table.stats:not(.plain) tbody tr.shade-1:nth-child(even) > :first-child { background: var(--shade-1s); }
+table.stats tbody tr.shade-2 > td, table.stats:not(.plain) tbody tr.shade-2 > :first-child { background: var(--shade-2); }
+table.stats tbody tr.shade-2:nth-child(even) > td, table.stats:not(.plain) tbody tr.shade-2:nth-child(even) > :first-child { background: var(--shade-2s); }
+table.stats tbody tr.shade-3 > td, table.stats:not(.plain) tbody tr.shade-3 > :first-child { background: var(--shade-3); }
+table.stats tbody tr.shade-3:nth-child(even) > td, table.stats:not(.plain) tbody tr.shade-3:nth-child(even) > :first-child { background: var(--shade-3s); }
+table.stats tbody tr.shade-4 > td, table.stats:not(.plain) tbody tr.shade-4 > :first-child { background: var(--shade-4); }
+table.stats tbody tr.shade-4:nth-child(even) > td, table.stats:not(.plain) tbody tr.shade-4:nth-child(even) > :first-child { background: var(--shade-4s); }
+table.stats tbody tr.shade-5 > td, table.stats:not(.plain) tbody tr.shade-5 > :first-child { background: var(--shade-5); }
+table.stats tbody tr.shade-5:nth-child(even) > td, table.stats:not(.plain) tbody tr.shade-5:nth-child(even) > :first-child { background: var(--shade-5s); }
 table.stats tbody tr.picked > td, table.stats:not(.plain) tbody tr.picked > :first-child { background: var(--pick); }
 tr.picked td.name { font-weight: 600; }
 p.prediction { max-width: 70ch; margin: 0 0 12px; }   /* the newsletter's picks, one paragraph per match */
