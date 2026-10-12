@@ -101,7 +101,10 @@ button.cmp:hover { color: var(--accent); }
          border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
 .chart-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .chart-top button.collapse { font-size: 12px; font-weight: 600; padding: 1px 8px; }   /* like the tables' */
-.plot { position: relative; margin-top: 8px; }
+.plot { position: relative; margin-top: 8px;
+        /* a phone: no tap flash or select-all on the graph; sideways slides move along it, up/down still scrolls */
+        -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+        -webkit-touch-callout: none; touch-action: pan-y; }
 .chart svg { display: block; width: 100%; height: auto; }
 .chart .grid { stroke: var(--line); stroke-width: 1; }
 .chart .axis { fill: var(--muted); font-size: 11px; }
@@ -111,8 +114,9 @@ button.cmp:hover { color: var(--accent); }
 .chart .dot { fill: var(--c); stroke: var(--panel); stroke-width: 2; }
 .chart .cross { stroke: var(--muted); stroke-width: 1; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
-       border-radius: 6px; padding: 6px 8px; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 15%); }
+       border-radius: 6px; padding: 6px 8px; font-size: 13px; white-space: nowrap; max-width: 100%; box-shadow: 0 2px 6px rgb(0 0 0 / 15%); }
 .tip strong, .tip-row { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 640px) { .tip { white-space: normal; } .tip-row { align-items: flex-start; } .tip .key { flex: none; margin-top: 3px; } }   /* long names wrap inside the graph */
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
 .legend span { display: flex; align-items: center; gap: 6px; }
 .key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }

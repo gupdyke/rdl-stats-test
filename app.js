@@ -736,7 +736,11 @@ function niceStep(raw) {
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
 }
 function lineChart(xs, series, fixedMax, avgName) {
-  const W = 860, H = 320, L = 52, R = 20, T = 16, B = 36;
+  // Drawn at the width it'll show at (up to 860), so on a phone the labels stay 11px
+  // instead of the whole picture shrinking to fit.
+  const W = Math.round(Math.min(860, Math.max(300, out.clientWidth - 18))), H = W < 600 ? 260 : 320;
+  const L = 52, R = 20, T = 16, B = 48;
+  graphWidth = out.clientWidth;
   const x = (i) => (xs.length === 1 ? (L + W - R) / 2 : L + (i / (xs.length - 1)) * (W - L - R));
   const vmax = Math.max(...series.flatMap((s) => s.pts.filter(Boolean).map((p) => p.v)));
   const step = fixedMax ? 0.2 : vmax > 0 ? niceStep(vmax / 4) : 1;
@@ -746,14 +750,14 @@ function lineChart(xs, series, fixedMax, avgName) {
   for (let v = 0; v <= ymax + 1e-9; v += step) {
     root.append(svgEl("line", { class: "grid", x1: L, x2: W - R, y1: y(v), y2: y(v) }));
     const t = svgEl("text", { class: "axis", x: L - 6, y: y(v) + 4, "text-anchor": "end" });
-    t.textContent = fixedMax ? v.toFixed(3) : +v.toFixed(2);
+    t.textContent = v.toFixed(3);   // 0.600, 0.400 like the tables, ASP too
     root.append(t);
   }
-  let lastX = -Infinity;   // x labels, skipping any that would crowd the one before
+  // Every x label, angled 45°; smaller than 11px only when there are too many to fit (a long career).
+  const xFont = Math.min(11, xs.length > 1 ? (W - L - R) / (xs.length - 1) / 1.45 : 11);
   xs.forEach((s, i) => {
-    if (x(i) - lastX < 44) return;
-    lastX = x(i);
-    const t = svgEl("text", { class: "axis", x: x(i), y: H - B + 18, "text-anchor": "middle" });
+    const t = svgEl("text", { class: "axis", x: x(i), y: H - B + 14, "text-anchor": "end",
+      transform: `rotate(-45 ${x(i)} ${H - B + 14})`, style: `font-size: ${xFont.toFixed(1)}px` });
     t.textContent = s;
     root.append(t);
   });
@@ -786,7 +790,9 @@ function lineChart(xs, series, fixedMax, avgName) {
   const plot = el("div", { className: "plot" });
   plot.append(root, tip);
   box.append(top, ...(collapsed.has("graph") ? [] : [plot]));
-  hit.addEventListener("pointermove", (ev) => {
+  // Mouse: hover. Phone: tap a point (or slide sideways along the graph); the box stays up
+  // after the finger lifts, until a tap outside the graph (plot.hideTip).
+  const showTip = (ev) => {
     const r = root.getBoundingClientRect(), scale = W / r.width;
     const i = Math.max(0, Math.min(xs.length - 1, Math.round((((ev.clientX - r.left) * scale - L) / (W - L - R)) * (xs.length - 1))));
     const cx = x(i);
@@ -799,10 +805,13 @@ function lineChart(xs, series, fixedMax, avgName) {
     }));
     tip.hidden = false;
     const left = cx / scale + 10, flip = left + tip.offsetWidth > r.width;
-    tip.style.left = `${flip ? cx / scale - tip.offsetWidth - 10 : left}px`;
+    tip.style.left = `${Math.max(0, Math.min(r.width - tip.offsetWidth, flip ? cx / scale - tip.offsetWidth - 10 : left))}px`;   // kept inside on a phone
     tip.style.top = `${T / scale}px`;
-  });
-  hit.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); });
+  };
+  hit.addEventListener("pointermove", showTip);
+  hit.addEventListener("pointerdown", showTip);
+  plot.hideTip = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); };
+  hit.addEventListener("pointerleave", (ev) => { if (ev.pointerType === "mouse") plot.hideTip(); });
   return box;
 }
 function searchCareers(q) {   // any part of a name, or a name they used to be listed under
@@ -979,6 +988,15 @@ const namesSeen = new MutationObserver(alignSoon);
 namesSeen.observe($("out"), { childList: true, subtree: true });
 PHONE.addEventListener("change", alignSoon);
 addEventListener("resize", alignSoon);
+// A tap anywhere but a graph closes the graph's value box (a phone has no mouse leaving it).
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest(".plot")) document.querySelectorAll(".plot").forEach((p) => p.hideTip?.());
+});
+// The Career graph is drawn for the width it shows at: redraw it when that changes (a phone turned).
+let graphWidth = 0, redrawing = 0;
+addEventListener("resize", () => { clearTimeout(redrawing); redrawing = setTimeout(() => {
+  if ($("page").value === "career" && document.querySelector(".chart") && Math.abs(out.clientWidth - graphWidth) > 40) render();
+}, 200); });
 
 function render() {
   const page = $("page").value;
