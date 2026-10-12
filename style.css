@@ -7,6 +7,9 @@
   --shade-1: #e6eefa; --shade-1s: #dbe6f6; --shade-2: #fbf1dc; --shade-2s: #f5e7c7;
   --shade-3: #efe7f8; --shade-3s: #e5daf3; --shade-4: #e0f3f2; --shade-4s: #d1ecea;
   --shade-5: #f9e6ee; --shade-5s: #f3d8e4;
+  /* Career graph lines, in this order (the dataviz default categorical palette, validated) */
+  --graph-1: #2a78d6; --graph-2: #eb6834; --graph-3: #1baf7a; --graph-4: #eda100;
+  --graph-5: #e87ba4; --graph-6: #008300; --graph-7: #6250d6; --graph-8: #e34948;
   --link: #1a5fb4;   /* links, e.g. the TONs link in the ? box (the browser's default blue is unreadable in dark mode) */
 }
 @media (prefers-color-scheme: dark) {
@@ -18,6 +21,8 @@
     --shade-1: #1d2633; --shade-1s: #222c3a; --shade-2: #332b1a; --shade-2s: #3a311e;
     --shade-3: #2a2236; --shade-3s: #30273d; --shade-4: #18302f; --shade-4s: #1c3736;
     --shade-5: #33202a; --shade-5s: #3a2530;
+    --graph-1: #3987e5; --graph-2: #d95926; --graph-3: #199e70; --graph-4: #c98500;
+    --graph-5: #d55181; --graph-6: #008300; --graph-7: #9085e9; --graph-8: #e66767;
     --link: #8ab4f8;
   }
 }
@@ -91,6 +96,26 @@ button.cmp { padding: 0 6px; margin-right: 8px; font-size: 14px; line-height: 18
 button.cmp:hover { color: var(--accent); }
 .cmp-head { display: flex; align-items: center; gap: 12px; }
 .cmp-head button { font-size: 13px; font-weight: 400; }
+/* Career graph */
+.chart { max-width: 860px; background: var(--panel);
+         border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.chart-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.chart-top button.collapse { font-size: 12px; font-weight: 600; padding: 1px 8px; }   /* like the tables' */
+.plot { position: relative; margin-top: 8px; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-size: 11px; }
+.chart .line { fill: none; stroke: var(--c); stroke-width: 2; }
+.chart .dot { fill: var(--c); stroke: var(--panel); stroke-width: 2; }
+.chart .cross { stroke: var(--muted); stroke-width: 1; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+       border-radius: 6px; padding: 6px 8px; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 6px rgb(0 0 0 / 15%); }
+.tip strong, .tip-row { display: flex; align-items: center; gap: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+.s1 { --c: var(--graph-1); } .s2 { --c: var(--graph-2); } .s3 { --c: var(--graph-3); } .s4 { --c: var(--graph-4); }
+.s5 { --c: var(--graph-5); } .s6 { --c: var(--graph-6); } .s7 { --c: var(--graph-7); } .s8 { --c: var(--graph-8); }
 .aka { margin: -4px 0 8px; font-size: 14px; color: var(--muted); }   /* Career: the other names a player was listed under */
 button:disabled { opacity: 0.5; cursor: default; }
 h1 .label { font-size: 13px; font-weight: 700; color: var(--panel); background: var(--accent); border-radius: 4px; padding: 2px 8px; vertical-align: middle; }   /* test site */

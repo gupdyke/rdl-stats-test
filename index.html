@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RDL Newsletter Reader (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261011184013">
+  <link rel="stylesheet" href="style.css?v=20261012144903">
 </head>
 <body>
   <header>
@@ -117,6 +117,19 @@
       </div>
       <button id="career-clear" type="button" title="Take every player off the Career view">Clear</button>
     </div>
+    <div id="graph-row" class="row" data-pages="career">
+      <label>Graph <select id="graph-stat">
+        <option value="s301_pct">301 Win %</option>
+        <option value="scr_pct">Singles Cricket Win %</option>
+        <option value="s_pct">Singles Win %</option>
+        <option value="dcr_pct">Doubles Cricket Win %</option>
+        <option value="d501_pct">501 Win %</option>
+        <option value="d_pct">Doubles Win %</option>
+        <option value="t_pct" selected>Overall Win %</option>
+        <option value="asp_avg">ASP Avg</option>
+      </select></label>
+      <label>Over <select id="graph-span"><option value="">Career (by season)</option></select></label>
+    </div>
     <fieldset class="groups" data-pages="standings career">
       <legend>Show</legend>   <!-- remembered in this browser for the next visit -->
       <label><input type="checkbox" value="standings" checked> Standings</label>
@@ -134,8 +147,8 @@
   <p class="more-tools"><strong>More free tools for darts players:</strong><br>
     <a href="https://gupdyke.github.io/rdl-scoresheets/" target="_blank" rel="noopener">RDL Scoresheets</a> (Each week's match scoresheets, ready to print)<br>
     <a href="https://gupdyke.github.io/self-checkout/" target="_blank" rel="noopener">Self Checkout</a> (Practice your finishing strategy and/or help a teammate)</p>
-  <footer class="stamp">Updated Oct 11, 2026 2:39 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261011184013";</script>
-  <script src="app.js?v=20261011184013"></script>
+  <footer class="stamp">Updated Oct 12, 2026 10:48 AM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261012144903";</script>
+  <script src="app.js?v=20261012144903"></script>
 </body>
 </html>

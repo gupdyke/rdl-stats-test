@@ -663,7 +663,140 @@ async function careerView() {
   const cs = careerPicks.map(careerOf).filter(Boolean);
   if (!cs.length) return [el("p", { className: "empty" },
     `Search for a player above to see every season they played, ${careerData.seasons[0]} to ${careerData.seasons[careerData.seasons.length - 1]}. Add more players to compare careers.`)];
-  return cs.flatMap(careerTable);
+  let graph;
+  try { graph = await careerGraph(cs); } catch (e) { graph = [el("p", { className: "error" }, e.message)]; }
+  return [...graph, ...cs.flatMap(careerTable)];
+}
+
+// ---- Career graph: one stat (Graph) over a career (a point per season) or one season (a
+// point per newsletter week, season to date as printed). One line per player picked.
+const STAT_WL = { s301_pct: "s301", scr_pct: "scr", s_pct: "s", dcr_pct: "dcr", d501_pct: "d501", d_pct: "d", t_pct: "t" };
+// A player's rows for one point (a season can have two teams) in one: win % from the summed
+// W-L, ASP Avg from the summed points and games; the printed value when that's all there is.
+function graphPoint(rs, stat) {
+  if (!rs.length) return null;
+  const sum = (k) => { const vs = rs.map((r) => r[k]).filter((v) => typeof v === "number"); return vs.length ? vs.reduce((a, b) => a + b, 0) : null; };
+  const one = rs.length === 1 && typeof rs[0][stat] === "number" ? rs[0][stat] : null;
+  if (stat === "asp_avg") {
+    const asp = sum("asp"), gp = sum("gp");
+    return gp ? { v: asp / gp, text: (asp / gp).toFixed(3) } : one == null ? null : { v: one, text: one.toFixed(3) };
+  }
+  const g = STAT_WL[stat], w = sum(`${g}_w`), l = sum(`${g}_l`), v = ratio(w, l);
+  if (v != null) return { v, text: `${v.toFixed(3)} (${w}-${l})` };
+  return one == null ? null : { v: one, text: one.toFixed(3) };
+}
+const careerRows = ([, , rows]) => rows.map(([season, , , , ...vals]) =>
+  ({ season, ...Object.fromEntries(careerData.cols.map((c, i) => [c, vals[i]])) }));
+// A season's newsletters for the graph: its weeks, then one End of season (trny over banq).
+function graphFiles(season) {
+  const ns = catalog.rdl.filter((n) => n.season === season);
+  const final = ns.find((n) => n.final && /trny/i.test(n.file)) || ns.find((n) => n.final);
+  return [...ns.filter((n) => n.week != null), ...(final ? [final] : [])];
+}
+const squash = (s) => s.replace(/\s+/g, " ").trim();
+async function careerGraph(cs) {
+  const stat = $("graph-stat").value, span = $("graph-span").value;
+  const statName = $("graph-stat").selectedOptions[0].textContent;
+  let xs, series;   // xs: x labels; series: [{name, pts: [{v, text} | null per x]}]
+  if (!span) {
+    const played = new Set(cs.flatMap((c) => c[2].map((r) => r[0])));
+    xs = careerData.seasons.filter((s) => played.has(s));
+    series = cs.map((c) => { const rs = careerRows(c);
+      return { name: c[0], pts: xs.map((s) => graphPoint(rs.filter((r) => r.season === s), stat)) }; });
+  } else {
+    const files = graphFiles(span);
+    const weeks = await Promise.all(files.map((n) => fetchNews(n.file)));
+    xs = files.map((n) => (n.final ? "End" : `Wk ${n.week}`));
+    series = cs.map(([name, aka]) => {
+      const names = new Set([name, ...aka].map(squash));
+      return { name, pts: weeks.map((w) => graphPoint(Object.values(w.divisions).flat()
+        .flatMap((t) => t.players).filter((p) => names.has(squash(p.name))), stat)) };
+    });
+  }
+  const title = el("h2", {}, `${statName}, ${span ? `${span} by week (season to date)` : "by season"}`);
+  if (!series.some((s) => s.pts.some(Boolean)))
+    return [title, el("p", { className: "empty" }, span ? `No one picked played in ${span}.` : "Nothing to graph for this stat.")];
+  const extra = series.length > GRAPH_COLORS ? [el("p", { className: "empty" }, `The graph shows the first ${GRAPH_COLORS} players.`)] : [];
+  return [title, lineChart(xs, series.slice(0, GRAPH_COLORS), stat === "asp_avg" ? null : 1), ...extra];
+}
+
+// A line chart: one line per series (colors --graph-1..8 in order), gaps where a player has
+// no value, crosshair + tooltip listing every player at the x hovered. ymax 1 for win %.
+const GRAPH_COLORS = 8;
+const svgEl = (tag, attrs = {}) => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+function niceStep(raw) {
+  const p = 10 ** Math.floor(Math.log10(raw)), f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+}
+function lineChart(xs, series, fixedMax) {
+  const W = 860, H = 320, L = 52, R = 20, T = 16, B = 36;
+  const x = (i) => (xs.length === 1 ? (L + W - R) / 2 : L + (i / (xs.length - 1)) * (W - L - R));
+  const vmax = Math.max(...series.flatMap((s) => s.pts.filter(Boolean).map((p) => p.v)));
+  const step = fixedMax ? 0.2 : vmax > 0 ? niceStep(vmax / 4) : 1;
+  const ymax = fixedMax || Math.max(step, Math.ceil(vmax / step) * step);
+  const y = (v) => T + (1 - v / ymax) * (H - T - B);
+  const root = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Graph of the stat picked" });
+  for (let v = 0; v <= ymax + 1e-9; v += step) {
+    root.append(svgEl("line", { class: "grid", x1: L, x2: W - R, y1: y(v), y2: y(v) }));
+    const t = svgEl("text", { class: "axis", x: L - 6, y: y(v) + 4, "text-anchor": "end" });
+    t.textContent = fixedMax ? v.toFixed(3) : +v.toFixed(2);
+    root.append(t);
+  }
+  let lastX = -Infinity;   // x labels, skipping any that would crowd the one before
+  xs.forEach((s, i) => {
+    if (x(i) - lastX < 44) return;
+    lastX = x(i);
+    const t = svgEl("text", { class: "axis", x: x(i), y: H - B + 18, "text-anchor": "middle" });
+    t.textContent = s;
+    root.append(t);
+  });
+  series.forEach((s, n) => {
+    const cls = `series s${n + 1}`;
+    let run = [];   // consecutive points; a missing one breaks the line
+    const flush = () => { if (run.length > 1) root.append(svgEl("polyline", { class: `${cls} line`, points: run.join(" ") })); run = []; };
+    s.pts.forEach((p, i) => (p ? run.push(`${x(i)},${y(p.v)}`) : flush()));
+    flush();
+    s.pts.forEach((p, i) => p && root.append(svgEl("circle", { class: `${cls} dot`, cx: x(i), cy: y(p.v), r: 4 })));
+  });
+  const cross = svgEl("line", { class: "cross", y1: T, y2: H - B, visibility: "hidden" });
+  const hit = svgEl("rect", { x: L - 10, y: T, width: W - L - R + 20, height: H - T - B, fill: "transparent" });
+  root.append(cross, hit);
+  // Top row: Collapse (like every table's; collapsed, the graph shrinks to this row), then
+  // with 2+ players the legend, which color is whom.
+  const top = el("div", { className: "chart-top" });
+  top.append(collapseButton("graph"));
+  if (series.length > 1) {
+    const legend = el("div", { className: "legend" });
+    series.forEach((s, n) => { const k = el("span"); k.append(el("i", { className: `key s${n + 1}` }), s.name); legend.append(k); });
+    top.append(legend);
+  }
+  const box = el("div", { className: "chart" });
+  const tip = el("div", { className: "tip", hidden: true });
+  const plot = el("div", { className: "plot" });
+  plot.append(root, tip);
+  box.append(top, ...(collapsed.has("graph") ? [] : [plot]));
+  hit.addEventListener("pointermove", (ev) => {
+    const r = root.getBoundingClientRect(), scale = W / r.width;
+    const i = Math.max(0, Math.min(xs.length - 1, Math.round((((ev.clientX - r.left) * scale - L) / (W - L - R)) * (xs.length - 1))));
+    const cx = x(i);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx);
+    cross.setAttribute("visibility", "visible");
+    tip.replaceChildren(el("strong", {}, xs[i]), ...series.map((s, n) => {
+      const row = el("span", { className: "tip-row" });
+      row.append(el("i", { className: `key s${n + 1}` }), `${series.length > 1 ? `${s.name}: ` : ""}${s.pts[i]?.text ?? "—"}`);
+      return row;
+    }));
+    tip.hidden = false;
+    const left = cx / scale + 10, flip = left + tip.offsetWidth > r.width;
+    tip.style.left = `${flip ? cx / scale - tip.offsetWidth - 10 : left}px`;
+    tip.style.top = `${T / scale}px`;
+  });
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); });
+  return box;
 }
 function searchCareers(q) {   // any part of a name, or a name they used to be listed under
   const ws = words(q);
@@ -853,6 +986,7 @@ $("division").onchange = () => { collapsed.clear(); closeSearch(); resetViewSort
 $("team").onchange = () => { collapsed.clear(); saveView(); closeSearch(); fillPlayers(); };
 $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 $("trophy").onchange = $("board").onchange = $("schedweek").onchange = render;
+$("graph-stat").onchange = $("graph-span").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
 $("view-reset").onclick = clearPicked;
 // The ? (top right) opens Help as a popup.
@@ -907,6 +1041,9 @@ groupBoxes.forEach((c) => (c.onchange = () => {
   catch (e) { return message(e.message, "error"); }
   const seasons = [...new Set(catalog.rdl.map(seasonOf))].reverse();   // newest season on top
   fill($("season"), seasons.map((x) => [x, x]));
+  // The Career graph's Over: the career, or any season with weekly newsletters (newest first).
+  const weekly = [...new Set(catalog.rdl.filter((n) => n.week != null).map(seasonOf))].reverse();
+  fill($("graph-span"), [["", "Career (by season)"], ...weekly.map((s) => [s, `${s} (by week)`])]);
   // Start on the saved week, or the latest when there's a newer one (or nothing saved).
   const latest = catalog.rdl[catalog.rdl.length - 1];
   const start = (saved.latest === latest?.file && catalog.rdl.find((n) => n.file === saved.week)) || latest;
