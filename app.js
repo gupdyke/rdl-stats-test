@@ -781,8 +781,8 @@ function lineChart(xs, series, fixedMax, avgName) {
   top.append(collapseButton("graph"));
   const legend = el("div", { className: "legend" });
   if (series.length > 1) series.forEach((s, n) => { const k = el("span"); k.append(el("i", { className: `key s${n + 1}` }), s.name); legend.append(k); });
-  const dash = el("span");
-  dash.append(el("i", { className: "dash" }), `Dashed: ${series.length > 1 ? "each player's" : "the"} ${avgName}`);
+  const dash = el("span", { className: "dash-key" });   // "- - -: career average(s)"
+  dash.append(el("i", { className: "dash" }), `: ${avgName}${series.length > 1 ? "s" : ""}`);
   legend.append(dash);
   top.append(legend);
   const box = el("div", { className: "chart" });

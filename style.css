@@ -111,6 +111,7 @@ button.cmp:hover { color: var(--accent); }
 .chart .line { fill: none; stroke: var(--c); stroke-width: 2; }
 .chart .avg { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 6 4; opacity: 0.8; }   /* a player's own average */
 .dash { display: inline-block; width: 18px; border-top: 2px dashed var(--muted); }
+.legend .dash-key { gap: 2px; }   /* the colon right after the dashes */
 .chart .dot { fill: var(--c); stroke: var(--panel); stroke-width: 2; }
 .chart .cross { stroke: var(--muted); stroke-width: 1; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
