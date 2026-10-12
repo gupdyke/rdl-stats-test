@@ -697,27 +697,30 @@ const squash = (s) => s.replace(/\s+/g, " ").trim();
 async function careerGraph(cs) {
   const stat = $("graph-stat").value, span = $("graph-span").value;
   const statName = $("graph-stat").selectedOptions[0].textContent;
-  let xs, series;   // xs: x labels; series: [{name, pts: [{v, text} | null per x]}]
+  // xs: x labels; series: [{name, pts: [{v, text} | null per x], avg: {v, text}}], avg the
+  // player's own: the career total, or by week the season to date at the latest week.
+  let xs, series;
   if (!span) {
     const played = new Set(cs.flatMap((c) => c[2].map((r) => r[0])));
     xs = careerData.seasons.filter((s) => played.has(s));
     series = cs.map((c) => { const rs = careerRows(c);
-      return { name: c[0], pts: xs.map((s) => graphPoint(rs.filter((r) => r.season === s), stat)) }; });
+      return { name: c[0], pts: xs.map((s) => graphPoint(rs.filter((r) => r.season === s), stat)), avg: graphPoint(rs, stat) }; });
   } else {
     const files = graphFiles(span);
     const weeks = await Promise.all(files.map((n) => fetchNews(n.file)));
     xs = files.map((n) => (n.final ? "End" : `Wk ${n.week}`));
     series = cs.map(([name, aka]) => {
       const names = new Set([name, ...aka].map(squash));
-      return { name, pts: weeks.map((w) => graphPoint(Object.values(w.divisions).flat()
-        .flatMap((t) => t.players).filter((p) => names.has(squash(p.name))), stat)) };
+      const pts = weeks.map((w) => graphPoint(Object.values(w.divisions).flat()
+        .flatMap((t) => t.players).filter((p) => names.has(squash(p.name))), stat));
+      return { name, pts, avg: pts.filter(Boolean).pop() ?? null };
     });
   }
   const title = el("h2", {}, `${statName}, ${span ? `${span} by week (season to date)` : "by season"}`);
   if (!series.some((s) => s.pts.some(Boolean)))
     return [title, el("p", { className: "empty" }, span ? `No one picked played in ${span}.` : "Nothing to graph for this stat.")];
   const extra = series.length > GRAPH_COLORS ? [el("p", { className: "empty" }, `The graph shows the first ${GRAPH_COLORS} players.`)] : [];
-  return [title, lineChart(xs, series.slice(0, GRAPH_COLORS), stat === "asp_avg" ? null : 1), ...extra];
+  return [title, lineChart(xs, series.slice(0, GRAPH_COLORS), stat === "asp_avg" ? null : 1, span ? "season average" : "career average"), ...extra];
 }
 
 // A line chart: one line per series (colors --graph-1..8 in order), gaps where a player has
@@ -732,7 +735,7 @@ function niceStep(raw) {
   const p = 10 ** Math.floor(Math.log10(raw)), f = raw / p;
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
 }
-function lineChart(xs, series, fixedMax) {
+function lineChart(xs, series, fixedMax, avgName) {
   const W = 860, H = 320, L = 52, R = 20, T = 16, B = 36;
   const x = (i) => (xs.length === 1 ? (L + W - R) / 2 : L + (i / (xs.length - 1)) * (W - L - R));
   const vmax = Math.max(...series.flatMap((s) => s.pts.filter(Boolean).map((p) => p.v)));
@@ -754,6 +757,9 @@ function lineChart(xs, series, fixedMax) {
     t.textContent = s;
     root.append(t);
   });
+  series.forEach((s, n) => {   // each player's average first, a dashed line under their points
+    if (s.avg) root.append(svgEl("line", { class: `series s${n + 1} avg`, x1: L, x2: W - R, y1: y(s.avg.v), y2: y(s.avg.v) }));
+  });
   series.forEach((s, n) => {
     const cls = `series s${n + 1}`;
     let run = [];   // consecutive points; a missing one breaks the line
@@ -769,11 +775,12 @@ function lineChart(xs, series, fixedMax) {
   // with 2+ players the legend, which color is whom.
   const top = el("div", { className: "chart-top" });
   top.append(collapseButton("graph"));
-  if (series.length > 1) {
-    const legend = el("div", { className: "legend" });
-    series.forEach((s, n) => { const k = el("span"); k.append(el("i", { className: `key s${n + 1}` }), s.name); legend.append(k); });
-    top.append(legend);
-  }
+  const legend = el("div", { className: "legend" });
+  if (series.length > 1) series.forEach((s, n) => { const k = el("span"); k.append(el("i", { className: `key s${n + 1}` }), s.name); legend.append(k); });
+  const dash = el("span");
+  dash.append(el("i", { className: "dash" }), `Dashed: ${series.length > 1 ? "each player's" : "the"} ${avgName}`);
+  legend.append(dash);
+  top.append(legend);
   const box = el("div", { className: "chart" });
   const tip = el("div", { className: "tip", hidden: true });
   const plot = el("div", { className: "plot" });
@@ -787,7 +794,7 @@ function lineChart(xs, series, fixedMax) {
     cross.setAttribute("visibility", "visible");
     tip.replaceChildren(el("strong", {}, xs[i]), ...series.map((s, n) => {
       const row = el("span", { className: "tip-row" });
-      row.append(el("i", { className: `key s${n + 1}` }), `${series.length > 1 ? `${s.name}: ` : ""}${s.pts[i]?.text ?? "—"}`);
+      row.append(el("i", { className: `key s${n + 1}` }), `${series.length > 1 ? `${s.name}: ` : ""}${s.pts[i]?.text ?? "—"}${s.avg ? ` (avg ${s.avg.v.toFixed(3)})` : ""}`);
       return row;
     }));
     tip.hidden = false;

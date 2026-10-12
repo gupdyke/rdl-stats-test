@@ -106,6 +106,8 @@ button.cmp:hover { color: var(--accent); }
 .chart .grid { stroke: var(--line); stroke-width: 1; }
 .chart .axis { fill: var(--muted); font-size: 11px; }
 .chart .line { fill: none; stroke: var(--c); stroke-width: 2; }
+.chart .avg { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 6 4; opacity: 0.8; }   /* a player's own average */
+.dash { display: inline-block; width: 18px; border-top: 2px dashed var(--muted); }
 .chart .dot { fill: var(--c); stroke: var(--panel); stroke-width: 2; }
 .chart .cross { stroke: var(--muted); stroke-width: 1; }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
