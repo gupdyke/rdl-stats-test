@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RDL Newsletter Reader (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261021021653">
+  <link rel="stylesheet" href="style.css?v=20261021180535">
 </head>
 <body>
   <header>
@@ -39,6 +39,18 @@
           <li><b>Collapse</b> (top-left of every table) shrinks that table to its top row, e.g. the table you
             pick from so the comparison is easier to see; <b>Expand</b> brings it back. Picking something new
             expands them all.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Match Results</h3>
+        <ul>
+          <li>View <b>Match Results</b> shows how a team did in each match this season, game type by game type
+            (301, SCkt, DCkt, 501), with the ASPs and the score. Each is our number, then theirs. Pick a
+            <b>Division</b> and <b>Team</b> first.</li>
+          <li>It goes up to the <b>TONs Week</b> you picked. The newsletter for week N reports week N-1's matches.</li>
+          <li><b>Opponent</b> shows just the matches against one team (both times you played them);
+            <b>Match Week</b> shows one week's match, even if you don't know who it was against.
+            Picking one puts the other back on All.</li>
         </ul>
       </div>
       <div class="popup-section">
@@ -85,6 +97,7 @@
       <label>View <select id="page">
         <option value="standings">Stats</option>
         <option value="schedule">Schedule</option>
+        <option value="results">Match Results</option>
         <option value="predictions">Predictions</option>
         <option value="hot">Hot Darts</option>
         <option value="trophy">Trophy Darts</option>
@@ -94,9 +107,11 @@
     </div>
     <!-- data-pages: the pages a control shows on -->
     <div id="browse-controls" class="row">
-      <label data-pages="standings predictions trophy leaders hot schedule">Division <select id="division"></select></label>
-      <label data-pages="standings">Team <select id="team"></select></label>
+      <label data-pages="standings predictions trophy leaders hot schedule results">Division <select id="division"></select></label>
+      <label data-pages="standings results">Team <select id="team"></select></label>
       <label data-pages="standings">Player <select id="player"></select></label>
+      <label data-pages="results">Opponent <select id="opponent"></select></label>
+      <label data-pages="results">Match Week <select id="resweek"></select></label>
       <label data-pages="schedule">Match Week <select id="schedweek"></select></label>
       <label data-pages="trophy">Category <select id="trophy"></select></label>
       <label data-pages="leaders">Board <select id="board">
@@ -152,8 +167,8 @@
   <p class="more-tools"><strong>More free tools for darts players:</strong><br>
     <a href="https://gupdyke.github.io/rdl-scoresheets/" target="_blank" rel="noopener">RDL Scoresheets</a> (Printable scoresheets for every match, every week)<br>
     <a href="https://gupdyke.github.io/self-checkout/" target="_blank" rel="noopener">Self Checkout</a> (Smart checkout routes for practice or a live game)</p>
-  <footer class="stamp">Updated Oct 20, 2026 10:15 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261021021653";</script>
-  <script src="app.js?v=20261021021653"></script>
+  <footer class="stamp">Updated Oct 21, 2026 2:04 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261021180535";</script>
+  <script src="app.js?v=20261021180535"></script>
 </body>
 </html>
