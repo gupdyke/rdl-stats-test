@@ -488,10 +488,10 @@ async function scheduleView() {
   return [el("h2", {}, `Schedule — Week ${week}${s.date ? ` (${shortDate(s.date)})` : ""} — ${where()}`),
     ...divisionsShown(Object.keys(s.divisions)).map((d) => {
       const e = s.divisions[d];
-      const rows = [...e.matches.map((m) => [label(m.away), label(m.home),
+      const rows = [...e.matches.map((m) => [label(m.home), label(m.away),
           m.unclear ? "Home team unclear in the newsletter" : locationCell(m.where)]),
-        ...e.byes.map((b) => [label(b), "Bye", ""])];
-      return boxTable(`${d} Division`, ["Away", "Home", "Location"], rows, { split: 2, key: `schedule:${d}` });
+        ...e.byes.map((b) => ["Bye", label(b), ""])];
+      return boxTable(`${d} Division`, ["Home", "Away", "Location"], rows, { split: 2, key: `schedule:${d}` });
     })];
 }
 const shortDate = (iso) => new Date(`${iso}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
