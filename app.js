@@ -607,15 +607,15 @@ async function resultsPage() {
       : "No match results in this season's newsletters yet.")];
   const pair = (a, b) => (a == null || b == null ? "" : `${a}-${b}`);
   const sum = (f) => Math.round(rows.reduce((t, r) => t + (typeof f(r) === "number" ? f(r) : 0), 0) * 10) / 10;   // ASPs have halves
-  const line = (r) => [String(r.week), ...(opp ? [] : [r.oppLabel]), r.home ? "Home" : "Away",
+  const line = (r) => [String(r.week), r.home ? "Home" : "Away", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score),
     ...RESULT_GAMES.map((g, i) => (r.mine.forfeit ? (i ? "" : "Forfeit") : pair(r.mine[g], r.opp[g]))),
-    pair(r.mine.asp, r.opp.asp), pair(r.mine.score, r.opp.score)];
-  const total = ["", ...(opp ? [] : [""]), "Total", ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))),
-    pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp)), pair(sum((r) => r.mine.score), sum((r) => r.opp.score))];
-  const lead = opp ? 2 : 3;   // Wk, [Opponent,] H/A
-  const wrap = boxTable($("season").value, ["Wk", ...(opp ? [] : ["Opponent"]), "H/A", "301", "SCkt", "DCkt", "501", "ASPs", "Score"],
+    pair(r.mine.asp, r.opp.asp)];
+  const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)),
+    ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))), pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp))];
+  const lead = opp ? 3 : 4;   // Wk, H/A, [Opponent,] Score
+  const wrap = boxTable($("season").value, ["Wk", "H/A", ...(opp ? [] : ["Opponent"]), "Score", "301", "SCkt", "DCkt", "501", "ASPs"],
     rows.length > 1 ? [...rows.map(line), total] : rows.map(line),
-    { split: lead, numeric: [lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5], freeze: 2, key: "results" });
+    { split: lead, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4], freeze: 2, key: "results" });
   wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", rows.length > 1);   // no body while collapsed
   return [el("h2", {}, heading), wrap];
 }
