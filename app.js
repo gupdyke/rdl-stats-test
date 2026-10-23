@@ -607,7 +607,7 @@ async function resultsPage() {
       : "No match results in this season's newsletters yet.")];
   const pair = (a, b) => (a == null || b == null ? "" : `${a}-${b}`);
   const sum = (f) => Math.round(rows.reduce((t, r) => t + (typeof f(r) === "number" ? f(r) : 0), 0) * 10) / 10;   // ASPs have halves
-  const line = (r) => [String(r.week), r.home ? "Home" : "Away", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score),
+  const line = (r) => [String(r.week), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score),
     ...RESULT_GAMES.map((g, i) => (r.mine.forfeit ? (i ? "" : "Forfeit") : pair(r.mine[g], r.opp[g]))),
     pair(r.mine.asp, r.opp.asp)];
   const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)),
@@ -1063,6 +1063,13 @@ addEventListener("resize", () => { clearTimeout(redrawing); redrawing = setTimeo
 function render() {
   const page = $("page").value;
   document.querySelectorAll("[data-pages]").forEach((e) => (e.hidden = !e.dataset.pages.split(" ").includes(page)));
+  const allTeamsOption = $("team").options[0];   // "All teams" has nothing to show in Match Results
+  if (allTeamsOption) allTeamsOption.hidden = allTeamsOption.disabled = page === "results";
+  if (news && page === "results" && !$("team").value && $("team").options.length > 1) {
+    const home = [...$("team").options].find((o) => o.value && o.value === homeTeam());
+    $("team").value = (home || $("team").options[1]).value;
+    return fillPlayers();   // renders again, now with a team
+  }
   if (news) PAGES[page]();
 }
 
