@@ -222,7 +222,9 @@ function homeDivision() {
 const seasonOf = (n) => n.season || "Other";
 function fillWeeks() {
   const prevWeek = catalog.rdl.find((n) => n.file === $("newsletter").value)?.week;
-  const weeks = catalog.rdl.filter((n) => seasonOf(n) === $("season").value);
+  const all = catalog.rdl.filter((n) => seasonOf(n) === $("season").value);
+  const final = all.find((n) => n.final && /trny/i.test(n.file)) || all.find((n) => n.final);   // one End of season: trny over banq, like graphFiles
+  const weeks = all.filter((n) => !n.final || n === final);
   fill($("newsletter"), weeks.map((n) => [n.file,
     n.final ? "End of season" : n.week != null ? `Week ${n.week}` : n.file]));
   const same = weeks.find((n) => n.week != null && n.week === prevWeek);   // keep the week across seasons
@@ -579,7 +581,7 @@ function clearPicked() {
 const RESULT_GAMES = ["g301", "gscr", "gdcr", "g501"];
 async function meetings(team, oppCode, week) {
   const sel = catalog.rdl.find((n) => n.file === $("newsletter").value);
-  const files = seasonFiles().filter((n) => n.final || n.week != null && (sel?.final || n.week <= sel?.week));
+  const files = seasonFiles().filter((n) => sel?.final || n.week != null && n.week <= sel?.week);   // the final is only in End of season
   const byWeek = new Map();
   for (const w of await Promise.all(files.map((n) => fetchNews(n.file)))) {
     for (const m of w.results?.matches || []) {
