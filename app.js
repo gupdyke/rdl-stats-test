@@ -190,7 +190,6 @@ function removeButton(list, key, label) {
 
 // ---- RDL mode ------------------------------------------------------------
 // Division "" = All divisions (the whole league).
-const shortName = (t) => window.SHORT_NAMES?.[t.name] || t.name;   // the Team and Opponent lists show no code
 const teamsOf = () => (!news ? [] : $("division").value ? news.divisions[$("division").value] || [] : allTeams());
 const playerKey = (t, p) => `${t.code}:${p.number}`;   // numbers repeat across divisions
 const playerLabel = (t, p) => `${p.name} (${t.code[0]}${p.number})`;   // "Updyke, Gerald (F74)": the player ID
@@ -270,7 +269,7 @@ function followPlayer(name) {
     `${name} isn't in ${$("season").value} ${$("newsletter").selectedOptions[0]?.text || ""}.`));
 }
 function fillTeams() {
-  fill($("team"), [["", "All teams"], ...teamsOf().map((t) => [t.code, shortName(t)])], true);
+  fill($("team"), [["", "All teams"], ...teamsOf().map((t) => [t.code, `${t.code} - ${t.name}`])], true);
   fillPlayers();
 }
 // Match Results: Opponent (the other teams in the picked team's division) and Match Week (the
@@ -280,7 +279,7 @@ function fillResults() {
   const opps = mine ? (news?.divisions[mine[0]] || []).filter((t) => t.code !== mine) : [];
   const sel = catalog.rdl.find((n) => n.file === $("newsletter").value);
   const weeks = Array.from({ length: sel?.final ? 14 : Math.max((sel?.week || 1) - 1, 0) }, (_, i) => [String(i + 1), `Week ${i + 1}`]);
-  fill($("opponent"), [["", "All"], ...opps.map((t) => [t.code, shortName(t)])], true);
+  fill($("opponent"), [["", "All"], ...opps.map((t) => [t.code, `${t.code} - ${t.name}`])], true);
   fill($("resweek"), [["", "All"], ...weeks], true);
   $("opponent").disabled = $("resweek").disabled = !mine;
 }
@@ -1102,7 +1101,8 @@ function pickList(select) {
   sheet.append(list);
   document.body.append(sheet);
   document.addEventListener("keydown", esc);
-  list.querySelector(".on")?.scrollIntoView({ block: "center" });
+  const on = list.querySelector(".on");   // only a long list needs the pick scrolled into view
+  if (on && list.scrollHeight > list.clientHeight) list.scrollTop = on.offsetTop - list.clientHeight / 2;
 }
 for (const id of ["team", "opponent"]) {
   const select = $(id), wrap = el("span", { className: "pickwrap" });

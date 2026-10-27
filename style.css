@@ -235,7 +235,7 @@ table.plain a { color: var(--series); }   /* a location's Google Maps link */
 }
 .picksheet { position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end; justify-content: center;
              background: rgb(0 0 0 / .4); }
-.picklist { width: 100%; max-width: 480px; max-height: 70vh; overflow-y: auto; background: var(--panel);
+.picklist { width: 100%; max-width: 480px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; background: var(--panel);
             border-radius: 10px 10px 0 0; padding: 6px 0 max(6px, env(safe-area-inset-bottom)); }
 .picklist button { display: block; width: 100%; text-align: left; border: 0; border-radius: 0; background: none;
                    padding: 10px 14px; font-size: 15px; color: var(--fg); }
