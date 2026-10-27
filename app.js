@@ -609,15 +609,22 @@ async function resultsPage() {
       : "No match results in this season's newsletters yet.")];
   const pair = (a, b) => (a == null || b == null ? "" : `${a}-${b}`);
   const sum = (f) => Math.round(rows.reduce((t, r) => t + (typeof f(r) === "number" ? f(r) : 0), 0) * 10) / 10;   // ASPs have halves
-  const line = (r) => [String(r.week), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score),
+  const wl = (r) => (typeof r.mine.score !== "number" || typeof r.opp.score !== "number" ? ""
+    : r.mine.score === r.opp.score ? r.mine.g1001 || "" : r.mine.score > r.opp.score ? "W" : "L");   // from the Score (a tie: the 1001 decides); the newsletter has no column for it
+  const count = (f, v) => rows.filter((r) => f(r) === v).length;
+  const record = (f) => (count(f, "W") + count(f, "L") ? `${count(f, "W")}-${count(f, "L")}` : "");   // wins-losses, blank if none
+  const short = (r) => (r.mine.short && r.opp.short ? "Both" : r.mine.short ? "Us" : r.opp.short ? "Them" : "-");
+  const g1001 = (r) => (r.mine.forfeit ? "" : r.mine.g1001 || "-");
+  const line = (r) => [String(r.week), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
     ...RESULT_GAMES.map((g, i) => (r.mine.forfeit ? (i ? "" : "Forfeit") : pair(r.mine[g], r.opp[g]))),
-    pair(r.mine.asp, r.opp.asp)];
-  const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)),
-    ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))), pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp))];
-  const lead = opp ? 3 : 4;   // Wk, H/A, [Opponent,] Score
-  const wrap = boxTable($("season").value, ["Wk", "H/A", ...(opp ? [] : ["Opponent"]), "Score", "301", "SCkt", "DCkt", "501", "ASPs"],
+    g1001(r), pair(r.mine.asp, r.opp.asp), r.mine.forfeit ? "" : short(r)];
+  const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)), record(wl),
+    ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))), record(g1001),
+    pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp)), ""];
+  const lead = opp ? 3 : 4;   // Wk, H/A, [Opponent,] Score, W/L: the first box
+  const wrap = boxTable($("season").value, ["Wk", "H/A", ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
     rows.length > 1 ? [...rows.map(line), total] : rows.map(line),
-    { split: lead, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4], freeze: 2, key: "results" });
+    { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key: "results" });
   wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", rows.length > 1);   // no body while collapsed
   return [el("h2", {}, heading), wrap];
 }
