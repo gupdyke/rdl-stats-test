@@ -176,7 +176,6 @@ table.stats:not(.plain) tbody tr:nth-child(even) > :first-child { background: va
   .row > label { flex: 1 1 calc(50% - 5px); min-width: 0; }
   .row > label:has(#team, #opponent) { flex-basis: 100%; }   /* "A1 - Long Team Name" needs the full row */
   select { min-width: 0; width: 100%; }
-  select, select option { font-size: 12px; }   /* smaller so long "A1 - Team Name" options fit the phone's open list on one line */
   .search { flex: 1 1 0; min-width: 0; }
   .search input { width: 100%; }
   th, td { padding: 4px 6px; }
@@ -224,3 +223,21 @@ table.stats:not(.plain) th, table.stats:not(.plain) td { padding-left: 4px; padd
 /* ... except a little more room before each vertical line (the last column of a box). */
 table.stats:not(.plain) th.br, table.stats:not(.plain) td.br { padding-right: 6px; }
 table.plain a { color: var(--series); }   /* a location's Google Maps link */
+
+/* Team and Opponent on a touch screen: a button over the select opens our own list (pickList() in
+   app.js), because the phone's list wraps long team names. */
+.pickwrap { display: block; position: relative; }
+.pickopen { display: none; }
+@media (pointer: coarse) {
+  .pickwrap select { pointer-events: none; width: 100%; }
+  .pickopen { display: block; position: absolute; inset: 0; width: 100%; opacity: 0; border: 0; padding: 0; }
+  .pickwrap select:disabled + .pickopen { display: none; }
+}
+.picksheet { position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end; justify-content: center;
+             background: rgb(0 0 0 / .4); }
+.picklist { width: 100%; max-width: 480px; max-height: 70vh; overflow-y: auto; background: var(--panel);
+            border-radius: 10px 10px 0 0; padding: 6px 0 max(6px, env(safe-area-inset-bottom)); }
+.picklist button { display: block; width: 100%; text-align: left; border: 0; border-radius: 0; background: none;
+                   padding: 10px 14px; font-size: 15px; color: var(--fg); }
+.picklist button.on { font-weight: 700; background: var(--stripe); }
+.picklist button:active { background: var(--stripe); }

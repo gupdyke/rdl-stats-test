@@ -190,6 +190,7 @@ function removeButton(list, key, label) {
 
 // ---- RDL mode ------------------------------------------------------------
 // Division "" = All divisions (the whole league).
+const shortName = (t) => window.SHORT_NAMES?.[t.name] || t.name;   // the Team and Opponent lists show no code
 const teamsOf = () => (!news ? [] : $("division").value ? news.divisions[$("division").value] || [] : allTeams());
 const playerKey = (t, p) => `${t.code}:${p.number}`;   // numbers repeat across divisions
 const playerLabel = (t, p) => `${p.name} (${t.code[0]}${p.number})`;   // "Updyke, Gerald (F74)": the player ID
@@ -269,7 +270,7 @@ function followPlayer(name) {
     `${name} isn't in ${$("season").value} ${$("newsletter").selectedOptions[0]?.text || ""}.`));
 }
 function fillTeams() {
-  fill($("team"), [["", "All teams"], ...teamsOf().map((t) => [t.code, `${t.code} - ${t.name}`])], true);
+  fill($("team"), [["", "All teams"], ...teamsOf().map((t) => [t.code, shortName(t)])], true);
   fillPlayers();
 }
 // Match Results: Opponent (the other teams in the picked team's division) and Match Week (the
@@ -279,7 +280,7 @@ function fillResults() {
   const opps = mine ? (news?.divisions[mine[0]] || []).filter((t) => t.code !== mine) : [];
   const sel = catalog.rdl.find((n) => n.file === $("newsletter").value);
   const weeks = Array.from({ length: sel?.final ? 14 : Math.max((sel?.week || 1) - 1, 0) }, (_, i) => [String(i + 1), `Week ${i + 1}`]);
-  fill($("opponent"), [["", "All"], ...opps.map((t) => [t.code, `${t.code} - ${t.name}`])], true);
+  fill($("opponent"), [["", "All"], ...opps.map((t) => [t.code, shortName(t)])], true);
   fill($("resweek"), [["", "All"], ...weeks], true);
   $("opponent").disabled = $("resweek").disabled = !mine;
 }
@@ -1084,6 +1085,31 @@ $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 // One or the other: picking an Opponent puts Match Week back on All, and the other way round.
 $("opponent").onchange = () => { if ($("opponent").value) $("resweek").value = ""; render(); };
 $("resweek").onchange = () => { if ($("resweek").value) $("opponent").value = ""; render(); };
+// Touch screens: Team and Opponent open our own list instead of the phone's, which wraps long
+// team names. The <select> stays the source of truth; the list sets its value and fires "change".
+function pickList(select) {
+  const close = () => { sheet.remove(); document.removeEventListener("keydown", esc); };
+  const esc = (e) => { if (e.key === "Escape") close(); };
+  const sheet = el("div", { className: "picksheet", onclick: (e) => { if (e.target === sheet) close(); } });
+  const list = el("div", { className: "picklist" });
+  for (const o of select.options) {
+    if (o.hidden || o.disabled) continue;
+    list.append(el("button", { type: "button", className: o.value === select.value ? "on" : "", onclick: () => {
+      close();
+      if (select.value !== o.value) { select.value = o.value; select.dispatchEvent(new Event("change")); }
+    } }, o.textContent));
+  }
+  sheet.append(list);
+  document.body.append(sheet);
+  document.addEventListener("keydown", esc);
+  list.querySelector(".on")?.scrollIntoView({ block: "center" });
+}
+for (const id of ["team", "opponent"]) {
+  const select = $(id), wrap = el("span", { className: "pickwrap" });
+  const open = el("button", { type: "button", className: "pickopen", ariaLabel: "Choose", onclick: () => { if (!select.disabled) pickList(select); } });
+  select.before(wrap);
+  wrap.append(select, open);
+}
 $("trophy").onchange = $("board").onchange = $("schedweek").onchange = render;
 $("graph-stat").onchange = $("graph-span").onchange = render;
 $("page").onchange = () => { closeSearch(); render(); };
