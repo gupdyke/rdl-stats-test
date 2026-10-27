@@ -73,11 +73,11 @@ button { font: inherit; padding: 4px 10px; color: var(--fg); background: var(--b
 .search input { font: inherit; font-size: 15px; width: 300px; max-width: 100%; padding: 4px 8px; color: var(--fg);
                 background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
 .results { position: absolute; top: 100%; left: 0; z-index: 10; margin: 2px 0 0; padding: 4px 0;
-                  list-style: none; width: 340px; max-width: 90vw; max-height: 320px; overflow-y: auto;
+                  list-style: none; width: max-content; min-width: 340px; max-width: 90vw; max-height: 320px; overflow-y: auto;
                   background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
                   box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
 .results button { display: block; width: 100%; text-align: left; border: 0; border-radius: 0;
-                         background: none; padding: 5px 10px; font-size: 14px; }
+                         background: none; padding: 5px 10px; font-size: 14px; white-space: nowrap; }
 .results button:hover, .results button:focus { background: var(--stripe); }
 .results .hit { display: flex; align-items: center; padding-left: 10px; }   /* + then the name */
 .results button.cmp { flex: none; width: auto; margin: 0; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; }
@@ -174,6 +174,7 @@ table.stats:not(.plain) tbody tr:nth-child(even) > :first-child { background: va
   .controls { margin: 10px 0; padding: 10px; gap: 10px; }
   .row { gap: 8px 10px; flex-wrap: wrap; }
   .row > label { flex: 1 1 calc(50% - 5px); min-width: 0; }
+  .row > label:has(#team, #opponent) { flex-basis: 100%; }   /* "A1 - Long Team Name" needs the full row */
   select { min-width: 0; width: 100%; }
   .search { flex: 1 1 0; min-width: 0; }
   .search input { width: 100%; }
