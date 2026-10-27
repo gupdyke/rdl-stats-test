@@ -285,8 +285,8 @@ function fillResults() {
 }
 function fillPlayers() {
   const teams = $("team").value ? teamsOf().filter((t) => t.code === $("team").value) : teamsOf();
-  const players = teams.flatMap((t) => t.players.map((p) => [playerKey(t, p), playerLabel(t, p)]))
-    .sort((a, b) => a[1].localeCompare(b[1]));
+  const players = teams.flatMap((t) => t.players.map((p) => ({ div: t.code[0], number: p.number, item: [playerKey(t, p), playerLabel(t, p)] })))
+    .sort(byPlayerId).map((p) => p.item);   // by player ID (A10 ... F74), not by name
   const first = !$("player").options.length;
   fill($("player"), [["none", "None"], ["", "All players"], ...players], !first);   // None (no player rows) is the default
   fillResults();
@@ -1084,7 +1084,7 @@ $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 // One or the other: picking an Opponent puts Match Week back on All, and the other way round.
 $("opponent").onchange = () => { if ($("opponent").value) $("resweek").value = ""; render(); };
 $("resweek").onchange = () => { if ($("resweek").value) $("opponent").value = ""; render(); };
-// Touch screens: Team and Opponent open our own list instead of the phone's, which wraps long
+// Touch screens: every dropdown opens our own list instead of the phone's, which wraps long
 // team names. The <select> stays the source of truth; the list sets its value and fires "change".
 function pickList(select) {
   const close = () => { sheet.remove(); document.removeEventListener("keydown", esc); };
@@ -1104,8 +1104,8 @@ function pickList(select) {
   const on = list.querySelector(".on");   // only a long list needs the pick scrolled into view
   if (on && list.scrollHeight > list.clientHeight) list.scrollTop = on.offsetTop - list.clientHeight / 2;
 }
-for (const id of ["team", "opponent"]) {
-  const select = $(id), wrap = el("span", { className: "pickwrap" });
+for (const select of document.querySelectorAll("select")) {
+  const wrap = el("span", { className: "pickwrap" });
   const open = el("button", { type: "button", className: "pickopen", ariaLabel: "Choose", onclick: () => { if (!select.disabled) pickList(select); } });
   select.before(wrap);
   wrap.append(select, open);

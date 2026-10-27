@@ -224,7 +224,7 @@ table.stats:not(.plain) th, table.stats:not(.plain) td { padding-left: 4px; padd
 table.stats:not(.plain) th.br, table.stats:not(.plain) td.br { padding-right: 6px; }
 table.plain a { color: var(--series); }   /* a location's Google Maps link */
 
-/* Team and Opponent on a touch screen: a button over the select opens our own list (pickList() in
+/* Every dropdown on a touch screen: a button over the select opens our own list (pickList() in
    app.js), because the phone's list wraps long team names. */
 .pickwrap { display: block; position: relative; }
 .pickopen { display: none; }
