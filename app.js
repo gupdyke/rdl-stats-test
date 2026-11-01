@@ -273,12 +273,11 @@ function fillTeams() {
   fillPlayers();
 }
 // Match Results: Opponent (the other teams in the picked team's division) and Match Week (the
-// weeks played so far: the newsletter for week N reports week N-1's matches, all 14 on End of season).
+// all 14 weeks of the season; one not played yet says so).
 function fillResults() {
   const mine = $("team").value;
   const opps = mine ? (news?.divisions[mine[0]] || []).filter((t) => t.code !== mine) : [];
-  const sel = catalog.rdl.find((n) => n.file === $("newsletter").value);
-  const weeks = Array.from({ length: sel?.final ? 14 : Math.max((sel?.week || 1) - 1, 0) }, (_, i) => [String(i + 1), `Week ${i + 1}`]);
+  const weeks = Array.from({ length: 14 }, (_, i) => [String(i + 1), `Week ${i + 1}`]);
   fill($("opponent"), [["", "All"], ...opps.map((t) => [t.code, `${t.code} - ${t.name}`])], true);
   fill($("resweek"), [["", "All"], ...weeks], true);
   $("opponent").disabled = $("resweek").disabled = !mine;
@@ -574,14 +573,12 @@ function clearPicked() {
   resetView();
 }
 // ---- Match Results: how a team did, game type by game type --------------------
-// The Match Results view: the picked team's matches this season, up to the TONs Week picked (all
-// of it on End of season), from each newsletter's match results (Pg2, rdl.py _results): home or
+// The Match Results view: the picked team's matches this season (TONs Week is hidden here), from each newsletter's match results (Pg2, rdl.py _results): home or
 // away, and for each game type and the ASPs the team's number against theirs. Opponent and Match
 // Week narrow it (each starts on All; picking one resets the other).
 const RESULT_GAMES = ["g301", "gscr", "gdcr", "g501"];
 async function meetings(team, oppCode, week) {
-  const sel = catalog.rdl.find((n) => n.file === $("newsletter").value);
-  const files = seasonFiles().filter((n) => sel?.final || n.week != null && n.week <= sel?.week);   // the final is only in End of season
+  const files = seasonFiles();   // the whole season, every newsletter so far
   const byWeek = new Map();
   for (const w of await Promise.all(files.map((n) => fetchNews(n.file)))) {
     for (const m of w.results?.matches || []) {
