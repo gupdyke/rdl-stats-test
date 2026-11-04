@@ -580,7 +580,8 @@ const RESULT_GAMES = ["g301", "gscr", "gdcr", "g501"];
 async function meetings(team, oppCode, week) {
   const files = seasonFiles();   // the whole season, every newsletter so far
   const byWeek = new Map();
-  for (const w of await Promise.all(files.map((n) => fetchNews(n.file)))) {
+  const loaded = await Promise.all(files.map((n) => fetchNews(n.file)));
+  for (const w of loaded) {
     for (const m of w.results?.matches || []) {
       const mine = m.away.code === team.code ? m.away : m.home.code === team.code ? m.home : null;
       const opp = mine === m.away ? m.home : m.away;
@@ -589,6 +590,17 @@ async function meetings(team, oppCode, week) {
       byWeek.set(w.results.week, { week: w.results.week, home: mine === m.home, mine, opp, oppLabel: o ? `${o.code} - ${o.name}` : opp.code,
         headlines: w.headlines || {} });
     }
+  }
+  // A bye week has no match to report, but still gets its row (Wk and BYE), for the weeks reported so far (Week 1's
+  // has no newsletter of its own, so the schedule says).
+  const wk2 = files.find((n) => n.week === 2);
+  const sched = wk2 ? (await fetchNews(wk2.file)).season_schedule || [] : [];
+  const latest = Math.max(0, ...loaded.map((w) => w.results?.week || 0));
+  if (!oppCode) for (const s of sched) {
+    if (s.week > latest || (week && s.week !== week) || byWeek.has(s.week)) continue;
+    if (!Object.values(s.divisions).some((d) => d.byes.includes(team.code))) continue;
+    byWeek.set(s.week, { week: s.week, bye: true, mine: {}, opp: {}, oppLabel: "BYE",
+      headlines: loaded.find((w) => w.results?.week === s.week)?.headlines || {} });
   }
   return [...byWeek.values()].sort((a, b) => a.week - b.week);
 }
@@ -613,7 +625,7 @@ async function resultsPage() {
   const record = (f) => (count(f, "W") + count(f, "L") ? `${count(f, "W")}-${count(f, "L")}` : "");   // wins-losses, blank if none
   const short = (r) => (r.mine.short && r.opp.short ? "Both" : r.mine.short ? "Us" : r.opp.short ? "Them" : "-");
   const g1001 = (r) => (r.mine.forfeit ? "" : r.mine.g1001 || "-");
-  const line = (r) => [String(r.week), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
+  const line = (r) => r.bye ? [String(r.week), "", "BYE", ...Array(opp ? 8 : 9).fill("")] : [String(r.week), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
     ...RESULT_GAMES.map((g, i) => (r.mine.forfeit ? (i ? "" : "Forfeit") : pair(r.mine[g], r.opp[g]))),
     g1001(r), pair(r.mine.asp, r.opp.asp), r.mine.forfeit ? "" : short(r)];
   const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)), record(wl),
