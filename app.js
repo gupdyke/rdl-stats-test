@@ -577,7 +577,7 @@ function clearPicked() {
 // away, and for each game type and the ASPs the team's number against theirs. Opponent and Match
 // Week narrow it (each starts on All; picking one resets the other).
 const RESULT_GAMES = ["g301", "gscr", "gdcr", "g501"];
-async function meetings(teams, oppCode, week) {
+async function meetings(teams, oppCode, week, once) {
   const files = seasonFiles();   // the whole season, every newsletter so far
   const codes = new Set(teams.map((t) => t.code));
   const byWeek = new Map();   // "week:team" -> row
@@ -586,7 +586,7 @@ async function meetings(teams, oppCode, week) {
     for (const m of w.results?.matches || []) {
       for (const mine of [m.away, m.home]) {
         const opp = mine === m.away ? m.home : m.away;
-        if (!codes.has(mine.code) || (oppCode && opp.code !== oppCode) || (week && w.results.week !== week)) continue;
+        if ((once && mine !== m.home) || !codes.has(mine.code) || (oppCode && opp.code !== oppCode) || (week && w.results.week !== week)) continue;
         const o = allTeams().find((t) => t.code === opp.code);   // named as the picked week names them
         byWeek.set(`${w.results.week}:${mine.code}`, { week: w.results.week, team: mine.code, home: mine === m.home, mine, opp,
           oppLabel: o ? `${o.code} - ${o.name}` : opp.code, headlines: w.headlines || {} });
@@ -614,7 +614,7 @@ async function resultsPage() {
   const who = team ? `${team.code} - ${team.name}` : $("division").value ? `${$("division").value} Division` : "All divisions";
   const heading = `Match Results — ${team ? who : `All teams, ${who}`}${opp ? ` vs ${opp.code} - ${opp.name}` : ""}${week ? ` — Week ${week}` : ""}`;
   let rows;
-  try { rows = await meetings(team ? [team] : teamsOf(), opp?.code || "", week); }
+  try { rows = await meetings(team ? [team] : teamsOf(), opp?.code || "", week, !team); }   // All teams: each match once, from the home team's side
   catch { return [el("p", { className: "error" }, "Couldn't load this season's results.")]; }
   const name = team ? team.name : "No team";
   if (!rows.length) return [el("h2", {}, heading), el("p", { className: "empty" },
@@ -633,16 +633,16 @@ async function resultsPage() {
   const short = (r) => (r.mine.short && r.opp.short ? "Both" : r.mine.short ? "Us" : r.opp.short ? "Them" : "-");
   const g1001 = (r) => (r.mine.forfeit ? "" : r.mine.g1001 || "-");
   const head = (r) => [String(r.week), ...(many ? [labelOf(r.team)] : [])];
-  const line = (r) => r.bye ? [...head(r), "", "BYE", ...Array(9).fill("")] : [...head(r), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
+  const line = (r) => r.bye ? [...head(r), ...(many ? [] : [""]), "BYE", ...Array(9).fill("")] : [...head(r), ...(many ? [] : [r.home ? "H" : "A"]), ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
     ...RESULT_GAMES.map((g, i) => (r.mine.forfeit ? (i ? "" : "Forfeit") : pair(r.mine[g], r.opp[g]))),
     g1001(r), pair(r.mine.asp, r.opp.asp), r.mine.forfeit ? "" : short(r)];
   const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)), record(wl),
     ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))), record(g1001),
     pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp)), ""];
-  const lead = (opp ? 3 : 4) + (many ? 1 : 0);   // Wk, [Team,] H/A, [Opponent,] Score, W/L: the first box
+  const lead = opp ? 3 : 4;   // Wk, [Team,] H/A, [Opponent,] Score, W/L: the first box
   const table = (rs, title, key) => {
     const totals = rs.length > 1 && !many;
-    const wrap = boxTable(title, ["Wk", ...(many ? ["Team"] : []), "H/A", ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
+    const wrap = boxTable(title, ["Wk", ...(many ? ["Team"] : ["H/A"]), ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
       totals ? [...rs.map(line), total] : rs.map(line),
       { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key });
     wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", totals);   // no body while collapsed
