@@ -642,7 +642,7 @@ async function resultsPage() {
   const lead = opp ? 3 : 4;   // Wk, [Team,] H/A, [Opponent,] Score, W/L: the first box
   const table = (rs, title, key) => {
     const totals = rs.length > 1 && !many;
-    const wrap = boxTable(title, ["Wk", ...(many ? ["Team"] : ["H/A"]), ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
+    const wrap = boxTable(title, ["Wk", ...(many ? ["Home"] : ["H/A"]), ...(opp ? [] : [many ? "Away" : "Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
       totals ? [...rs.map(line), total] : rs.map(line),
       { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key });
     wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", totals);   // no body while collapsed
