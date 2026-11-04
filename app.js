@@ -669,8 +669,8 @@ function headlinesFor(rows) {
     return out;
   });
   if (!items.length) return [];
-  return [el("h3", {}, "Headlines"), ...items.map(([label, text]) => {
-    const p = el("p", { className: "prediction" });
+  return [el("h3", { className: "recap" }, "Headlines"), ...items.map(([label, text], i) => {
+    const p = el("p", { className: i === items.length - 1 ? "prediction recap-end" : "prediction" });
     p.append(el("b", {}, label), ` ${text}`);
     return p;
   })];

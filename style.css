@@ -209,6 +209,8 @@ p.prediction { max-width: 70ch; margin: 0 0 12px; }   /* the newsletter's picks,
 .boards { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }   /* a division's leader boards, side by side */
 .boards > .scroll { margin-top: 0 !important; max-width: 100%; }
 h3 { font-size: 15px; margin: 20px 0 8px; }
+h3.recap { margin-top: 6px; }   /* Match Results: Headlines close under its table */
+p.recap-end { margin-bottom: 36px; }   /* ...and room after, to set the weeks apart */
 /* Newsletter tables: the left column(s) stay put while the rest scroll sideways, like the
    Standings name column (box-shadow for the side lines: collapsed borders don't follow a sticky cell). */
 table.plain .frz, table.plain thead tr:last-child th.frz { position: sticky; z-index: 1; background: var(--panel); border-left: 0; border-right: 0;
