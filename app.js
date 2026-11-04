@@ -640,12 +640,20 @@ async function resultsPage() {
     ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))), record(g1001),
     pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp)), ""];
   const lead = (opp ? 3 : 4) + (many ? 1 : 0);   // Wk, [Team,] H/A, [Opponent,] Score, W/L: the first box
-  const totals = rows.length > 1 && !many;
-  const wrap = boxTable($("season").value, ["Wk", ...(many ? ["Team"] : []), "H/A", ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
-    totals ? [...rows.map(line), total] : rows.map(line),
-    { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key: "results" });
-  wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", totals);   // no body while collapsed
-  return [el("h2", {}, heading), wrap, ...headlinesFor(rows)];
+  const table = (rs, title, key) => {
+    const totals = rs.length > 1 && !many;
+    const wrap = boxTable(title, ["Wk", ...(many ? ["Team"] : []), "H/A", ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
+      totals ? [...rs.map(line), total] : rs.map(line),
+      { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key });
+    wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", totals);   // no body while collapsed
+    return wrap;
+  };
+  // All teams: each week in its own table
+  const weeks = many ? [...new Set(rows.map((r) => r.week))] : [];
+  const tables = many ? weeks.flatMap((w) => { const rs = rows.filter((r) => r.week === w);   // each with its week's recap under it
+    return [table(rs, `${$("season").value} — Week ${w}`, `results-${w}`), ...headlinesFor(rs)]; })
+    : [table(rows, $("season").value, "results"), ...headlinesFor(rows)];
+  return [el("h2", {}, heading), ...tables];
 }
 // The newsletter's RDL Headlines (Pg1, rdl.py _headlines) for the weeks shown: the division paragraph of each team shown, and the
 // "Leaguewide" one too when Division is All. Same week as the Match Results row (Jerry, 2026-11-03: they recap the same matches).
@@ -1111,16 +1119,13 @@ addEventListener("resize", () => { clearTimeout(redrawing); redrawing = setTimeo
 function render() {
   const page = $("page").value;
   document.querySelectorAll("[data-pages]").forEach((e) => (e.hidden = !e.dataset.pages.split(" ").includes(page)));
-  // Match Results always has a Division and a Match Week (no "All" in either): Division starts on yours, Match Week on the latest one reported
+  // Match Results always has a Division (no "All"): it starts on yours
   const onResults = page === "results";
-  for (const sel of [$("division"), $("resweek")]) { const all = sel.options[0]; if (all) all.hidden = all.disabled = onResults; }
+  const allDivs = $("division").options[0];
+  if (allDivs) allDivs.hidden = allDivs.disabled = onResults;
   if (news && onResults && !$("division").value && $("division").options.length > 1) {
     $("division").value = homeDivision();
     if ($("division").value) return fillTeams();   // renders again, now with a division
-  }
-  if (news && onResults && !$("resweek").value && $("resweek").options.length > 1) {
-    $("resweek").value = String(Math.max(1, Math.max(0, ...seasonFiles().map((n) => n.week || 0)) - 1));   // a newsletter reports the week before it
-    if (!$("resweek").value) $("resweek").selectedIndex = 1;
   }
   if (news) PAGES[page]();
 }
@@ -1132,8 +1137,8 @@ $("division").onchange = () => { collapsed.clear(); closeSearch(); resetViewSort
 $("team").onchange = () => { $("opponent").value = $("resweek").value = ""; collapsed.clear(); saveView(); closeSearch(); fillPlayers(); };
 $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 // One or the other: picking an Opponent puts Match Week back on All, and the other way round.
-$("opponent").onchange = render;
-$("resweek").onchange = render;
+$("opponent").onchange = () => { if ($("opponent").value) $("resweek").value = ""; render(); };
+$("resweek").onchange = () => { if ($("resweek").value) $("opponent").value = ""; render(); };
 // Touch screens: every dropdown opens our own list instead of the phone's, which wraps long
 // team names. The <select> stays the source of truth; the list sets its value and fires "change".
 function pickList(select) {
