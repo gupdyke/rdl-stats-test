@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RDL Newsletter Reader (test)</title>
-  <link rel="stylesheet" href="style.css?v=20261104173628">
+  <link rel="stylesheet" href="style.css?v=20261104203312">
 </head>
 <body>
   <header>
@@ -15,7 +15,7 @@
       <button type="button" class="popup-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       <div class="popup-head">
         <h2 id="help-title">Help</h2>
-        <p id="help-desc">About this page, comparing and sorting.</p>
+        <p id="help-desc">What it does, each View, comparing and sorting.</p>
       </div>
       <div class="popup-section">
         <h3>PLEASE KEEP READING THE TONs</h3>
@@ -23,6 +23,76 @@
           has far more information than you'll find here, and if this is all you use, you'll miss most of it.
           Jason Kilts spends a lot of time putting the TONs together every week, and you still need to read it.
           Check it out: <a href="https://raleighdartleague.org/newsletter/" target="_blank" rel="noopener">raleighdartleague.org/newsletter</a></p>
+      </div>
+      <div class="popup-section">
+        <h3>What this tool does</h3>
+        <p>The RDL Newsletter Reader turns each week's TONs newsletter into tables you can sort, filter and compare.
+          Look up any team or player's stats, see who plays whom and where, read the predictions and hot darts,
+          check the trophy darts and leader boards, follow how a team did in every match, and trace a player's
+          whole career back to 1996. Pick a <b>Season</b> and a <b>View</b>, then narrow it with the other
+          dropdowns. Your Season, week, Division and Team are remembered for next time.</p>
+      </div>
+      <div class="popup-section">
+        <h3>Stats</h3>
+        <ul>
+          <li>View <b>Stats</b> is the main one: every team's season-to-date record, points and win percentages by game type, and, if you want them, each player's too. It works for every season back to Sp96 (an older season shows its final standings).</li>
+          <li>Pick a <b>Division</b>, then a <b>Team</b>, then a <b>Player</b>. Player starts on <b>None</b> (just the teams); <b>All players</b> adds everyone.</li>
+          <li><b>Show</b> (the checkboxes) picks the column groups: Standings, Singles, Doubles, Overall, All-Star and Tiebreakers.</li>
+          <li><b>Search</b> finds a team or player by any part of the name or ID.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Schedule</h3>
+        <ul>
+          <li>Who plays whom each week, home and away, where, and any bye. <b>Match Week</b> (1-14) picks the week.</li>
+          <li>Locations link to a map when the bar is on the approved list; anything else is plain text.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Predictions</h3>
+        <ul>
+          <li>Each division's match write-ups and picks from the newsletter, for the <b>TONs Week</b> picked.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Hot Darts</h3>
+        <ul>
+          <li>The week's hot darts for each division: 9-mark rounds, bulls, ASPs and fast games, as the newsletter lists them.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Trophy Darts</h3>
+        <ul>
+          <li>The Divisional Trophy Darts: High In, High Out and Fast games.</li>
+          <li><b>Category</b> picks one, or <b>All</b> for a table of each.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Leader Boards</h3>
+        <ul>
+          <li>The leaders in Singles win percentage, Singles + Doubles win percentage and All-Star Point Average (ASP). <b>Category</b> picks one, or <b>All</b> for all three.</li>
+          <li>A blank rank is tied with the one above.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Match Results</h3>
+        <ul>
+          <li>How a team did in each match this season, game type by game type (301, SCkt, DCkt, 501), with the ASPs and the score. Each pair of numbers is the picked team's, then its opponent's (with All teams, the home team's, then the away team's). It covers every week reported so far, and a bye week gets its own row.</li>
+          <li>Pick a <b>Division</b> and a <b>Team</b>, or <b>All teams</b> for every match in the division, one table per week with that week's headlines under it (Home is listed first, then Away).</li>
+          <li><b>Opponent</b> shows just the matches against one team (both times you played them); <b>Match Week</b> shows one week, even if you don't know who it was against. Picking one puts the other back on All.</li>
+        </ul>
+      </div>
+      <div class="popup-section">
+        <h3>Career</h3>
+        <ul>
+          <li>Every season a player played, back to Sp96, from each season's final standings (the current season so far), with a <b>Career</b> total at the bottom.</li>
+          <li>Search a player under <b>Player</b>; each one you pick adds a table, so you can compare careers. <b>×</b> takes one away, <b>Clear</b> takes them all.</li>
+          <li>The graph above the tables shows one stat, picked under <b>Graph</b>, with a line for each player. <b>Over</b> picks a whole career (a point per season) or one season (a point per week, season to date). The dashed lines are each player's average.</li>
+          <li>Point at the graph (on a phone, tap it or slide along it) to see the numbers; tap outside it to close them. <b>Collapse</b> shrinks the graph, like a table.</li>
+          <li>The newsletters spelled some names differently over the years (Jerry / Gerald). Names that look like the same person count as one career; Jr. and Sr. are kept apart.</li>
+          <li>Each row in the table shows the Season, Division and Team for reference.</li>
+          <li>Email corrections to rdlscoresheets@gmail.com</li>
+        </ul>
       </div>
       <div class="popup-section">
         <h3>Comparing teams and players</h3>
@@ -39,35 +109,6 @@
           <li><b>Collapse</b> (top-left of every table) shrinks that table to its top row, e.g. the table you
             pick from so the comparison is easier to see; <b>Expand</b> brings it back. Picking something new
             expands them all.</li>
-        </ul>
-      </div>
-      <div class="popup-section">
-        <h3>Match Results</h3>
-        <ul>
-          <li>View <b>Match Results</b> shows how a team did in each match this season, game type by game type
-            (301, SCkt, DCkt, 501), with the ASPs and the score. Each is our number, then theirs. Pick a
-            <b>Division</b> and <b>Team</b> first.</li>
-          <li>It covers the whole season, every week reported so far.</li>
-          <li><b>Opponent</b> shows just the matches against one team (both times you played them);
-            <b>Match Week</b> shows one week's match, even if you don't know who it was against.
-            Picking one puts the other back on All.</li>
-        </ul>
-      </div>
-      <div class="popup-section">
-        <h3>Career</h3>
-        <ul>
-          <li>View <b>Career</b> shows every season a player played, back to Sp96, from each season's final
-            standings (the current season so far), with a <b>Career</b> total at the bottom.</li>
-          <li>Search a player under <b>Player</b>; each one you pick adds a table, so you can compare careers.
-            <b>×</b> takes one away, <b>Clear</b> takes them all.</li>
-          <li>The graph above the tables shows one stat, picked under <b>Graph</b>, with a line for each player.
-            <b>Over</b> picks a whole career (a point per season) or one season (a point per week, season to date).
-            The dashed lines are each player's average.</li>
-          <li>Point at the graph (on a phone, tap it or slide along it) to see the numbers; tap outside it to
-            close them. <b>Collapse</b> shrinks the graph, like a table.</li>
-          <li>The newsletters spelled some names differently over the years (Jerry / Gerald). Names that look
-            like the same person count as one career; Jr. and Sr. are kept apart.</li>
-          <li>Each row in the table shows the Season, Division and Team for reference.</li>
         </ul>
       </div>
       <div class="popup-section">
@@ -115,7 +156,7 @@
       <label data-pages="results">Match Week <select id="resweek"></select></label>
       <label data-pages="schedule">Match Week <select id="schedweek"></select></label>
       <label data-pages="trophy">Category <select id="trophy"></select></label>
-      <label data-pages="leaders">Board <select id="board">
+      <label data-pages="leaders">Category <select id="board">
         <option value="*">All</option>
         <option value="Singles">Singles Win Percentage</option>
         <option value="Singles + Doubles">Singles + Doubles Win Percentage</option>
@@ -168,8 +209,8 @@
   <p class="more-tools"><strong>More free tools for darts players:</strong><br>
     <a href="https://gupdyke.github.io/rdl-scoresheets/" target="_blank" rel="noopener">RDL Scoresheets</a> (Populated, printable scoresheets for every match, every week)<br>
     <a href="https://gupdyke.github.io/self-checkout/" target="_blank" rel="noopener">Self Checkout</a> (Customizable routes and strategy for smart '01 gameplay)</p>
-  <footer class="stamp">Updated Nov 4, 2026 12:35 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
-  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261104173628";</script>
-  <script src="app.js?v=20261104173628"></script>
+  <footer class="stamp">Updated Nov 4, 2026 3:32 PM<br>© 2026 Gerald L. Updyke · <a href="LICENSE.txt">License</a></footer>
+  <script>window.STATS_PUBLIC = true; window.STATS_VERSION = "20261104203312";</script>
+  <script src="app.js?v=20261104203312"></script>
 </body>
 </html>

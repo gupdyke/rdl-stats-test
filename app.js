@@ -416,7 +416,7 @@ const where = () => ($("division").value ? `${$("division").value} Division` : "
 // Leader boards: the newsletter's three lists, shown together for each division: rank
 // (blank = tied with the one above), player, team, and its three numbers. Win % and
 // averages to 3 places, like everywhere else. (The end-of-season Doubles list is left out.)
-// Board (next to Division) picks one list, or All.
+// Category (next to Division) picks one list, or All.
 const LEADER_BOARDS = [["Singles", "Singles Win Percentage"], ["Singles + Doubles", "Singles + Doubles Win Percentage"],
   ["All-Star", "All-Star Point Average (ASP)"]];
 function leadersView() {
