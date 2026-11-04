@@ -586,7 +586,8 @@ async function meetings(team, oppCode, week) {
       const opp = mine === m.away ? m.home : m.away;
       if (!mine || (oppCode && opp.code !== oppCode) || (week && w.results.week !== week)) continue;
       const o = allTeams().find((t) => t.code === opp.code);   // named as the picked week names them
-      byWeek.set(w.results.week, { week: w.results.week, home: mine === m.home, mine, opp, oppLabel: o ? `${o.code} - ${o.name}` : opp.code });
+      byWeek.set(w.results.week, { week: w.results.week, home: mine === m.home, mine, opp, oppLabel: o ? `${o.code} - ${o.name}` : opp.code,
+        headlines: w.headlines || {} });
     }
   }
   return [...byWeek.values()].sort((a, b) => a.week - b.week);
@@ -623,7 +624,22 @@ async function resultsPage() {
     rows.length > 1 ? [...rows.map(line), total] : rows.map(line),
     { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key: "results" });
   wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", rows.length > 1);   // no body while collapsed
-  return [el("h2", {}, heading), wrap];
+  return [el("h2", {}, heading), wrap, ...headlinesFor(team, rows)];
+}
+// The newsletter's RDL Headlines (Pg1, rdl.py _headlines) for the weeks shown: the team's division paragraph, and the
+// "Leaguewide" one too when Division is All. Same week as the Match Results row (Jerry, 2026-11-03: they recap the same matches).
+function headlinesFor(team, rows) {
+  const div = Object.keys(news.divisions).find((d) => news.divisions[d].some((t) => t.code === team.code));
+  const all = !$("division").value;
+  const items = rows.flatMap((r) => [
+    ...(all && r.headlines.Leaguewide ? [[`Week ${r.week} — Leaguewide:`, r.headlines.Leaguewide]] : []),
+    ...(r.headlines[div] ? [[`Week ${r.week} — ${div} Division:`, r.headlines[div]]] : [])]);
+  if (!items.length) return [];
+  return [el("h3", {}, "Headlines"), ...items.map(([label, text]) => {
+    const p = el("p", { className: "prediction" });
+    p.append(el("b", {}, label), ` ${text}`);
+    return p;
+  })];
 }
 // Teams are keyed by code, players by name (so they carry across seasons and weeks).
 const picked = { teams: [], players: [] };   // keys, in the order added
