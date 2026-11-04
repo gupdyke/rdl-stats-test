@@ -280,7 +280,7 @@ function fillResults() {
   const weeks = Array.from({ length: 14 }, (_, i) => [String(i + 1), `Week ${i + 1}`]);
   fill($("opponent"), [["", "All"], ...opps.map((t) => [t.code, `${t.code} - ${t.name}`])], true);
   fill($("resweek"), [["", "All"], ...weeks], true);
-  $("opponent").disabled = $("resweek").disabled = !mine;
+  $("opponent").disabled = !mine;   // Opponent needs a team; Match Week works for All teams too
 }
 function fillPlayers() {
   const teams = $("team").value ? teamsOf().filter((t) => t.code === $("team").value) : teamsOf();
@@ -577,18 +577,20 @@ function clearPicked() {
 // away, and for each game type and the ASPs the team's number against theirs. Opponent and Match
 // Week narrow it (each starts on All; picking one resets the other).
 const RESULT_GAMES = ["g301", "gscr", "gdcr", "g501"];
-async function meetings(team, oppCode, week) {
+async function meetings(teams, oppCode, week) {
   const files = seasonFiles();   // the whole season, every newsletter so far
-  const byWeek = new Map();
+  const codes = new Set(teams.map((t) => t.code));
+  const byWeek = new Map();   // "week:team" -> row
   const loaded = await Promise.all(files.map((n) => fetchNews(n.file)));
   for (const w of loaded) {
     for (const m of w.results?.matches || []) {
-      const mine = m.away.code === team.code ? m.away : m.home.code === team.code ? m.home : null;
-      const opp = mine === m.away ? m.home : m.away;
-      if (!mine || (oppCode && opp.code !== oppCode) || (week && w.results.week !== week)) continue;
-      const o = allTeams().find((t) => t.code === opp.code);   // named as the picked week names them
-      byWeek.set(w.results.week, { week: w.results.week, home: mine === m.home, mine, opp, oppLabel: o ? `${o.code} - ${o.name}` : opp.code,
-        headlines: w.headlines || {} });
+      for (const mine of [m.away, m.home]) {
+        const opp = mine === m.away ? m.home : m.away;
+        if (!codes.has(mine.code) || (oppCode && opp.code !== oppCode) || (week && w.results.week !== week)) continue;
+        const o = allTeams().find((t) => t.code === opp.code);   // named as the picked week names them
+        byWeek.set(`${w.results.week}:${mine.code}`, { week: w.results.week, team: mine.code, home: mine === m.home, mine, opp,
+          oppLabel: o ? `${o.code} - ${o.name}` : opp.code, headlines: w.headlines || {} });
+      }
     }
   }
   // A bye week has no match to report, but still gets its row (Wk and BYE), for the weeks reported so far (Week 1's
@@ -597,26 +599,31 @@ async function meetings(team, oppCode, week) {
   const sched = wk2 ? (await fetchNews(wk2.file)).season_schedule || [] : [];
   const latest = Math.max(0, ...loaded.map((w) => w.results?.week || 0));
   if (!oppCode) for (const s of sched) {
-    if (s.week > latest || (week && s.week !== week) || byWeek.has(s.week)) continue;
-    if (!Object.values(s.divisions).some((d) => d.byes.includes(team.code))) continue;
-    byWeek.set(s.week, { week: s.week, bye: true, mine: {}, opp: {}, oppLabel: "BYE",
-      headlines: loaded.find((w) => w.results?.week === s.week)?.headlines || {} });
+    if (s.week > latest || (week && s.week !== week)) continue;
+    for (const d of Object.values(s.divisions)) for (const code of d.byes) {
+      if (!codes.has(code) || byWeek.has(`${s.week}:${code}`)) continue;
+      byWeek.set(`${s.week}:${code}`, { week: s.week, team: code, bye: true, mine: {}, opp: {}, oppLabel: "BYE",
+        headlines: loaded.find((w) => w.results?.week === s.week)?.headlines || {} });
+    }
   }
-  return [...byWeek.values()].sort((a, b) => a.week - b.week);
+  return [...byWeek.values()].sort((a, b) => a.week - b.week || a.team.localeCompare(b.team, "en", { numeric: true }));
 }
 async function resultsPage() {
-  const team = teamsOf().find((t) => t.code === $("team").value);
-  if (!team) return [el("p", { className: "empty" }, "Pick a team to see its match results.")];
+  const team = teamsOf().find((t) => t.code === $("team").value);   // none: All teams (the Division's, or every division's)
   const opp = teamsOf().find((t) => t.code === $("opponent").value), week = +$("resweek").value || 0;
-  const heading = `Match Results — ${team.code} - ${team.name}${opp ? ` vs ${opp.code} - ${opp.name}` : ""}${week ? ` — Week ${week}` : ""}`;
+  const who = team ? `${team.code} - ${team.name}` : $("division").value ? `${$("division").value} Division` : "All divisions";
+  const heading = `Match Results — ${team ? who : `All teams, ${who}`}${opp ? ` vs ${opp.code} - ${opp.name}` : ""}${week ? ` — Week ${week}` : ""}`;
   let rows;
-  try { rows = await meetings(team, opp?.code || "", week); }
+  try { rows = await meetings(team ? [team] : teamsOf(), opp?.code || "", week); }
   catch { return [el("p", { className: "error" }, "Couldn't load this season's results.")]; }
+  const name = team ? team.name : "No team";
   if (!rows.length) return [el("h2", {}, heading), el("p", { className: "empty" },
-    opp && week ? `${team.name} didn't play ${opp.name} in week ${week}.`
-      : opp ? `${team.name} hasn't played ${opp.name} yet this season.`
-      : week ? `No match reported for ${team.name} in week ${week} (a bye, or not in the newsletters).`
+    opp && week ? `${name} didn't play ${opp.name} in week ${week}.`
+      : opp ? `${name} hasn't played ${opp.name} yet this season.`
+      : week ? `No match reported for ${team ? team.name : "these teams"} in week ${week} (a bye, or not in the newsletters).`
       : "No match results in this season's newsletters yet.")];
+  const many = !team;   // every team's matches: a Team column, and no totals (they'd add up different teams)
+  const labelOf = (code) => { const t = allTeams().find((x) => x.code === code); return t ? `${t.code} - ${t.name}` : code; };
   const pair = (a, b) => (a == null || b == null ? "" : `${a}-${b}`);
   const sum = (f) => Math.round(rows.reduce((t, r) => t + (typeof f(r) === "number" ? f(r) : 0), 0) * 10) / 10;   // ASPs have halves
   const wl = (r) => (typeof r.mine.score !== "number" || typeof r.opp.score !== "number" ? ""
@@ -625,27 +632,34 @@ async function resultsPage() {
   const record = (f) => (count(f, "W") + count(f, "L") ? `${count(f, "W")}-${count(f, "L")}` : "");   // wins-losses, blank if none
   const short = (r) => (r.mine.short && r.opp.short ? "Both" : r.mine.short ? "Us" : r.opp.short ? "Them" : "-");
   const g1001 = (r) => (r.mine.forfeit ? "" : r.mine.g1001 || "-");
-  const line = (r) => r.bye ? [String(r.week), "", "BYE", ...Array(opp ? 8 : 9).fill("")] : [String(r.week), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
+  const head = (r) => [String(r.week), ...(many ? [labelOf(r.team)] : [])];
+  const line = (r) => r.bye ? [...head(r), "", "BYE", ...Array(9).fill("")] : [...head(r), r.home ? "H" : "A", ...(opp ? [] : [r.oppLabel]), pair(r.mine.score, r.opp.score), wl(r),
     ...RESULT_GAMES.map((g, i) => (r.mine.forfeit ? (i ? "" : "Forfeit") : pair(r.mine[g], r.opp[g]))),
     g1001(r), pair(r.mine.asp, r.opp.asp), r.mine.forfeit ? "" : short(r)];
   const total = ["", "Total", ...(opp ? [] : [""]), pair(sum((r) => r.mine.score), sum((r) => r.opp.score)), record(wl),
     ...RESULT_GAMES.map((g) => pair(sum((r) => r.mine[g]), sum((r) => r.opp[g]))), record(g1001),
     pair(sum((r) => r.mine.asp), sum((r) => r.opp.asp)), ""];
-  const lead = opp ? 3 : 4;   // Wk, H/A, [Opponent,] Score, W/L: the first box
-  const wrap = boxTable($("season").value, ["Wk", "H/A", ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
-    rows.length > 1 ? [...rows.map(line), total] : rows.map(line),
+  const lead = (opp ? 3 : 4) + (many ? 1 : 0);   // Wk, [Team,] H/A, [Opponent,] Score, W/L: the first box
+  const totals = rows.length > 1 && !many;
+  const wrap = boxTable($("season").value, ["Wk", ...(many ? ["Team"] : []), "H/A", ...(opp ? [] : ["Opponent"]), "Score", "W/L", "301", "SCkt", "DCkt", "501", "1001", "ASPs", "Short"],
+    totals ? [...rows.map(line), total] : rows.map(line),
     { split: lead + 1, numeric: [lead - 1, lead, lead + 1, lead + 2, lead + 3, lead + 4, lead + 5, lead + 6, lead + 7], freeze: 2, key: "results" });
-  wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", rows.length > 1);   // no body while collapsed
-  return [el("h2", {}, heading), wrap, ...headlinesFor(team, rows)];
+  wrap.querySelector("tbody")?.lastElementChild.classList.toggle("total", totals);   // no body while collapsed
+  return [el("h2", {}, heading), wrap, ...headlinesFor(rows)];
 }
-// The newsletter's RDL Headlines (Pg1, rdl.py _headlines) for the weeks shown: the team's division paragraph, and the
+// The newsletter's RDL Headlines (Pg1, rdl.py _headlines) for the weeks shown: the division paragraph of each team shown, and the
 // "Leaguewide" one too when Division is All. Same week as the Match Results row (Jerry, 2026-11-03: they recap the same matches).
-function headlinesFor(team, rows) {
-  const div = Object.keys(news.divisions).find((d) => news.divisions[d].some((t) => t.code === team.code));
+function headlinesFor(rows) {
+  const divOf = (code) => Object.keys(news.divisions).find((d) => news.divisions[d].some((t) => t.code === code));
   const all = !$("division").value;
-  const items = rows.flatMap((r) => [
-    ...(all && r.headlines.Leaguewide ? [[`Week ${r.week} — Leaguewide:`, r.headlines.Leaguewide]] : []),
-    ...(r.headlines[div] ? [[`Week ${r.week} — ${div} Division:`, r.headlines[div]]] : [])]);
+  const seen = new Set();
+  const items = rows.flatMap((r) => {
+    const out = [];
+    const add = (div, label) => { const k = `${r.week}:${div}`; if (r.headlines[div] && !seen.has(k)) { seen.add(k); out.push([label, r.headlines[div]]); } };
+    if (all) add("Leaguewide", `Week ${r.week} — Leaguewide:`);
+    add(divOf(r.team), `Week ${r.week} — ${divOf(r.team)} Division:`);
+    return out;
+  });
   if (!items.length) return [];
   return [el("h3", {}, "Headlines"), ...items.map(([label, text]) => {
     const p = el("p", { className: "prediction" });
@@ -1097,12 +1111,16 @@ addEventListener("resize", () => { clearTimeout(redrawing); redrawing = setTimeo
 function render() {
   const page = $("page").value;
   document.querySelectorAll("[data-pages]").forEach((e) => (e.hidden = !e.dataset.pages.split(" ").includes(page)));
-  const allTeamsOption = $("team").options[0];   // "All teams" has nothing to show in Match Results
-  if (allTeamsOption) allTeamsOption.hidden = allTeamsOption.disabled = page === "results";
-  if (news && page === "results" && !$("team").value && $("team").options.length > 1) {
-    const home = [...$("team").options].find((o) => o.value && o.value === homeTeam());
-    $("team").value = (home || $("team").options[1]).value;
-    return fillPlayers();   // renders again, now with a team
+  // Match Results always has a Division and a Match Week (no "All" in either): Division starts on yours, Match Week on the latest one reported
+  const onResults = page === "results";
+  for (const sel of [$("division"), $("resweek")]) { const all = sel.options[0]; if (all) all.hidden = all.disabled = onResults; }
+  if (news && onResults && !$("division").value && $("division").options.length > 1) {
+    $("division").value = homeDivision();
+    if ($("division").value) return fillTeams();   // renders again, now with a division
+  }
+  if (news && onResults && !$("resweek").value && $("resweek").options.length > 1) {
+    $("resweek").value = String(Math.max(1, Math.max(0, ...seasonFiles().map((n) => n.week || 0)) - 1));   // a newsletter reports the week before it
+    if (!$("resweek").value) $("resweek").selectedIndex = 1;
   }
   if (news) PAGES[page]();
 }
@@ -1114,8 +1132,8 @@ $("division").onchange = () => { collapsed.clear(); closeSearch(); resetViewSort
 $("team").onchange = () => { $("opponent").value = $("resweek").value = ""; collapsed.clear(); saveView(); closeSearch(); fillPlayers(); };
 $("player").onchange = () => { collapsed.clear(); closeSearch(); render(); };
 // One or the other: picking an Opponent puts Match Week back on All, and the other way round.
-$("opponent").onchange = () => { if ($("opponent").value) $("resweek").value = ""; render(); };
-$("resweek").onchange = () => { if ($("resweek").value) $("opponent").value = ""; render(); };
+$("opponent").onchange = render;
+$("resweek").onchange = render;
 // Touch screens: every dropdown opens our own list instead of the phone's, which wraps long
 // team names. The <select> stays the source of truth; the list sets its value and fires "change".
 function pickList(select) {
