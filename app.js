@@ -453,6 +453,24 @@ function hotView() {
         hot.filter((h) => h.division === d).map((h) => [h.name, h.team, h.dart]), { split: 2, key: `hot:${d}` }))];
 }
 
+// Perfect Throws (Fa26 and later): the newsletter's Pg3 list under the trophy darts, a table per category (9-Marks,
+// Ton-80s, 6-Bulls, ...) in the order the TONs prints them, each entry as it prints (player, team, date(s)).
+const perfectSeason = () => {
+  const m = /^(Sp|Fa)(\d\d)/.exec($("season").value);
+  return !!m && (+m[2] >= 90 ? 1900 : 2000) + +m[2] + (m[1] === "Fa" ? 0.5 : 0) >= 2026.5;
+};
+function perfectView() {
+  if (!perfectSeason()) return [el("p", { className: "empty" }, "Perfect Throws starts with Fa26.")];
+  const cats = news.perfect || [];
+  if (!cats.length) return [el("p", { className: "empty" }, "No Perfect Throws in this newsletter.")];
+  const all = !$("division").value;
+  const shown = cats.map((c) => ({ ...c, entries: c.entries.filter((e) => all || e.division === $("division").value) })).filter((c) => c.entries.length);
+  if (!shown.length) return [el("h2", {}, `Perfect Throws — ${where()}`), el("p", { className: "empty" }, `No Perfect Throws for ${where()} in this newsletter.`)];
+  return [el("h2", {}, `Perfect Throws — ${where()}`),
+    ...shown.map((c) => boxTable(c.category, [...(all ? ["Div"] : []), "Player", "Team", "Date(s)"],
+      c.entries.map((e) => [...(all ? [e.division || ""] : []), e.name, e.team, e.dates]), { split: all ? 3 : 2, key: `perfect:${c.category}` }))];
+}
+
 // Schedule: who plays whom in the week picked in Week (next to Division; 1-14). It comes from
 // the season's grid in its Week 2 newsletter, or else that week's own newsletter (Pg5
 // "THIS WEEK'S MATCHES"). Each location links to the bar's address on Google Maps.
@@ -1048,7 +1066,7 @@ function showPlayer(t, p) {
 // Page (next to Week): Standings is the stats tables; the others are newsletter pages.
 // A control shows only on the pages in its data-pages.
 const PAGES = { standings: () => renderStandings(), predictions: () => show(predictionsView()),
-  trophy: () => show(trophyPage()), leaders: () => show(leadersView()), hot: () => show(hotView()),
+  trophy: () => show(trophyPage()), perfect: () => show(perfectView()), leaders: () => show(leadersView()), hot: () => show(hotView()),
   schedule: async () => { const parts = await scheduleView(); if ($("page").value === "schedule") show(parts); },
   results: async () => { const parts = await resultsPage(); if ($("page").value === "results") show(parts); },
   career: async () => { const parts = await careerView(); if ($("page").value === "career") show(parts); } };
