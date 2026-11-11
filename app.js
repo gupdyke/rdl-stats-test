@@ -499,6 +499,14 @@ async function scheduleView() {
     const own = n && (await fetchNews(n.file)).schedule;
     if (own) s = { week, divisions: own.divisions };
   }
+  if (s && Object.values(s.divisions).some((e) => e.matches.some((m) => m.unclear))) {
+    // the grid couldn't say who's home (Fa26 week 14, H7/H8): that week's own page 5 does, once it's out
+    const n = seasonFiles().find((x) => x.week === week);
+    const own = n && (await fetchNews(n.file)).schedule;
+    const pair = (m) => [m.home, m.away].sort().join();
+    if (own) s = { ...s, divisions: Object.fromEntries(Object.entries(s.divisions).map(([d, e]) => [d, { ...e,
+      matches: e.matches.map((m) => (m.unclear && own.divisions[d]?.matches.find((o) => pair(o) === pair(m))) || m) }])) };
+  }
   if (!s) return [el("p", { className: "empty" }, `No schedule for week ${week} in this season's newsletters.`)];
   const label = (code) => {
     const t = allTeams().find((x) => x.code === code);
