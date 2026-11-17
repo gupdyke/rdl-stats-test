@@ -473,7 +473,7 @@ function perfectView() {
 
 // Schedule: who plays whom in the week picked in Week (next to Division; 1-14). It comes from
 // the season's grid in its Week 2 newsletter, or else that week's own newsletter (Pg5
-// "THIS WEEK'S MATCHES"). Each location links to the bar's address on Google Maps.
+// "THIS WEEK'S MATCHES"). Each location links to the bar's address on a map (mapURL).
 const loaded = {};   // newsletter file -> its JSON (a promise), for the schedule's other weeks
 const fetchNews = (file) => (loaded[file] ??= getJSON(`/api/rdl?file=${encodeURIComponent(file)}`));
 const seasonFiles = () => catalog.rdl.filter((n) => seasonOf(n) === $("season").value);
@@ -483,16 +483,20 @@ async function scheduleView() {
     const wk2 = seasonFiles().find((n) => n.week === 2);
     return wk2 ? (await fetchNews(wk2.file)).season_schedule || [] : [];
   })();
+  // The tournament (weeks 15-17 in the dropdown's values only): the trny newsletter's bracket.
+  const trny = seasonFiles().find((n) => n.final && /trny/i.test(n.file));
+  const tour = trny ? (await fetchNews(trny.file)).tournament : null;
   if (schedFor !== $("newsletter").value) {   // a new week picked up top: open its schedule
     schedFor = $("newsletter").value;
     const n = catalog.rdl.find((x) => x.file === schedFor);
-    fill($("schedweek"), Array.from({ length: 14 }, (_, i) => {
+    fill($("schedweek"), [...Array.from({ length: 14 }, (_, i) => {
       const g = grid.find((w) => w.week === i + 1);
       return [String(i + 1), g?.date ? `Week ${i + 1} (${shortDate(g.date)})` : `Week ${i + 1}`];
-    }));
-    $("schedweek").value = String(n?.final ? 14 : n?.week || 1);
+    }), ...(tour?.rounds || []).map((r, i) => [String(15 + i), `Tournament ${r.name}${r.date ? ` (${shortDate(r.date)})` : ""}`])]);
+    $("schedweek").value = String(n?.final ? (tour ? 15 : 14) : n?.week || 1);   // End of season opens on the Quarterfinals
   }
   const week = +$("schedweek").value;
+  if (week > 14) return tour ? tournamentView(tour, week - 15) : [el("p", { className: "empty" }, "No tournament bracket in this season's newsletters.")];
   let s = grid.find((w) => w.week === week);
   if (!s) {   // no grid: that week's own newsletter, if there is one
     const n = seasonFiles().find((x) => x.week === week);
@@ -521,9 +525,33 @@ async function scheduleView() {
       return boxTable(`${d} Division`, ["Home", "Away", "Location"], rows, { split: 2, key: `schedule:${d}` });
     })];
 }
+// One tournament round from the trny newsletter's bracket (rdl._tournament). Quarterfinals:
+// Home is the higher seed ("officially the home team"). Semifinals and Finals: a side not
+// decided yet lists the teams it can still be. Seeds in parentheses.
+function tournamentView(tour, i) {
+  const round = tour.rounds[i];
+  const name = (code) => allTeams().find((x) => x.code === code)?.name || code;
+  const team = (t) => `(${t.seed}) ${t.code} - ${name(t.code)}`;
+  const side = (x) => (x.code ? team(x) : ["Winner of:", ...[...x.from].sort((a, b) => a.seed - b.seed).map((t) => `(${t.seed}) ${name(t.code)}`)].join("\n"));
+  let star = false;
+  const at = (w) => { star ||= /\*/.test(w || ""); return w ? locationCell(w) : ""; };
+  const tables = divisionsShown(Object.keys(tour.divisions).sort()).map((d) => {
+    const b = tour.divisions[d];
+    const rows = i === 0 ? [...b.quarterfinals.map((m) => [team(m.home), team(m.away), at(m.where)]),
+        ...b.byes.map((t) => ["Bye", team(t), ""])]
+      : (i === 1 ? b.semifinals : [b.final]).map((m) => [side(m.sides[0]), side(m.sides[1]), at(m.where)]);
+    return boxTable(`${d} Division`, i === 0 ? ["Home", "Away", "Location"] : ["Team", "Opponent", "Location"], rows,
+      { split: 2, lines: [0, 1], key: `schedule:${d}` });
+  });
+  const notes = [i === 0 && "Home is the higher seed. Seeds are in parentheses.",
+    i > 0 && "Seeds are in parentheses.",
+    star && "* A third board may be available; the captains may agree to use it."].filter(Boolean);
+  return [el("h2", {}, `Schedule — Tournament ${round.name}${round.date ? ` (${shortDate(round.date)})` : ""} — ${where()}`),
+    ...tables, ...notes.map((t) => el("p", { className: "empty" }, t))];
+}
 const shortDate = (iso) => new Date(`${iso}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-// A location as printed ("Upper Deck 13+15"), with the bar's address under it as a Google Maps
+// A location as printed ("Upper Deck 13+15"), with the bar's address under it as a map
 // link, ONLY for the locations Jerry approved for that season (PLACES). Anything else (a past
 // season, a new or misspelled location) stays plain text: a wrong link costs credibility, so
 // nothing is guessed. To add a season or a bar, get Jerry's OK on the exact location and address.
@@ -556,15 +584,34 @@ const PLACES = {
     "taproom knightdate": ["The Taproom - Knightdale", "861 Old Knight Rd, Suite 104, Knightdale"],   // sic
     "the flying saucer": ["The Flying Saucer", "328 West Morgan Street, Raleigh"],
     "upper deck": ["The Upper Deck", "329 N. Harrison Avenue, Cary"],
+    // the tournament bracket's spellings (trny Pg6) of bars above; Jerry OK'd 2026-11-17
+    "american legion-fv": ["American Legion Fuquay-Varina", "6400 Johnson Pond Road, Fuquay-Varina"],
+    "cleveland dh - garner": ["Cleveland Draft House - Garner", "6101 NC Highway 42 West, Garner"],
+    "lonerider": ["Lonerider Wake Forest", "1839 South Main Street, Suite 600, Wake Forest"],
+    "rally point": ["Rally Point Sport Grill", "1837 N. Harrison Ave., Cary"],
+    "taproom - knightdale": ["The Taproom - Knightdale", "861 Old Knight Rd, Suite 104, Knightdale"],
   },
 };
-const placeKey = (where) => where.toLowerCase().replace(/\d+\s*[+&]\s*\d+/g, " ").replace(/\s+/g, " ").trim();
+const placeKey = (where) => where.replace(/\*/g, "").toLowerCase().replace(/\d+\s*[+&]\s*\d+/g, " ").replace(/\s+/g, " ").trim();
+// A map link that isn't tied to one company: an iPhone/iPad gets Apple Maps (its own app), an
+// Android phone a geo: link (Android asks which map app: Google Maps, Waze, Organic Maps...),
+// and anything else (a computer) OpenStreetMap in the browser. OpenStreetMap's search finds the
+// street address but not "bar name, address", so it gets the address only, tidied the way its
+// search needs (checked 2026-11-17): no "Suite 115", "NC Highway 42 West" as "NC 42", and the state.
+function mapURL(name, address) {
+  const nc = /\bNC\b/.test(address) ? "" : ", NC";
+  const q = encodeURIComponent(`${name}, ${address}${nc}`), ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return `https://maps.apple.com/?q=${q}`;
+  if (/Android/i.test(ua)) return `geo:0,0?q=${q}`;
+  const osm = address.replace(/,\s*Suite [^,]+/i, "").replace(/\bNC Highway (\d+)(?: (?:North|South|East|West))?/i, "NC $1");
+  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(osm + (/,\s*NC\b/.test(osm) ? "" : ", NC"))}`;
+}
 function locationCell(where) {
   const hit = PLACES[$("season").value]?.[placeKey(where)];
   if (!hit) return where;
   const [name, address] = hit;
-  const a = el("a", { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${address}${/\bNC\b/.test(address) ? "" : ", NC"}`)}`,
-    target: "_blank", rel: "noopener" }, address);
+  const href = mapURL(name, address);
+  const a = el("a", href.startsWith("http") ? { href, target: "_blank", rel: "noopener" } : { href }, address);
   const cell = document.createDocumentFragment();
   cell.append(where, el("br"), a);
   return cell;
